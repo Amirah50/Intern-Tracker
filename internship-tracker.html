@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Internship Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rose: #ECA6C4;
+    --rose-deep: #D9769E;
+    --amethyst: #A98BDB;
+    --amethyst-deep: #8467C2;
+    --amber: #EFC07E;
+    --amber-deep: #D99A3E;
+    --mint: #8FDCC4;
+    --mint-deep: #5CBE9E;
+    --ink: #3A2E42;
+    --ink-soft: #7A6D85;
+    --glass: rgba(255,255,255,0.30);
+    --glass-strong: rgba(255,255,255,0.5);
+    --glass-border: rgba(255,255,255,0.55);
+    --radius: 20px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family:'Inter', sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 8% 12%, rgba(236,166,196,0.55), transparent 40%),
+      radial-gradient(circle at 92% 8%, rgba(169,139,219,0.5), transparent 42%),
+      radial-gradient(circle at 15% 85%, rgba(143,220,196,0.4), transparent 40%),
+      radial-gradient(circle at 88% 90%, rgba(239,192,126,0.4), transparent 42%),
+      linear-gradient(160deg, #F7E4DE 0%, #EDD9EE 35%, #DCE0EF 65%, #E8ECE4 100%);
+    background-attachment: fixed;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .bubble{
+    position: fixed; border-radius:50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85), rgba(255,255,255,0.05) 60%);
+    filter: blur(0.5px);
+    pointer-events:none; z-index:0;
+  }
+  .glass{
+    background: var(--glass);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(80,50,90,0.12), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .app{ position:relative; z-index:1; max-width: 1180px; margin:0 auto; padding: 28px 24px 60px; }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    padding: 18px 26px; margin-bottom:22px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .orb{
+    width:40px; height:40px; border-radius:50%;
+    background: linear-gradient(135deg, var(--rose), var(--amethyst));
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.4), 0 4px 14px rgba(150,100,180,0.35);
+  }
+  .brand h1{ font-family:'Quicksand'; font-weight:700; font-size:19px; margin:0; }
+  .brand .tag{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); }
+
+  .stats-row{ display:flex; align-items:center; gap:22px; }
+  .level-badge{ display:flex; align-items:center; gap:10px; }
+  .level-ring{ position:relative; width:52px; height:52px; }
+  .level-ring svg{ transform: rotate(-90deg); }
+  .level-ring .lvl-num{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Quicksand'; font-weight:700; font-size:15px; color: var(--amethyst-deep);
+  }
+  .level-text{ font-family:'Inter'; }
+  .level-text .lt-top{ font-size:12px; font-weight:600; }
+  .level-text .lt-sub{ font-family:'JetBrains Mono'; font-size:10px; color: var(--ink-soft); }
+
+  .streak-badge{
+    display:flex; align-items:center; gap:6px;
+    background: linear-gradient(135deg, rgba(239,192,126,0.5), rgba(217,118,158,0.35));
+    padding:7px 14px; border-radius: 30px; border:1px solid rgba(255,255,255,0.6);
+  }
+  .streak-badge .flame{ font-size:16px; }
+  .streak-badge span{ font-family:'JetBrains Mono'; font-size:12px; font-weight:600; }
+
+  .nav-pills{ display:flex; gap:10px; margin-bottom:22px; }
+  .nav-pills button{
+    font-family:'Quicksand'; font-weight:600; font-size:13.5px;
+    padding: 10px 20px; border-radius: 30px; cursor:pointer;
+    background: rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.5);
+    color: var(--ink); backdrop-filter: blur(10px); transition: all .18s ease;
+  }
+  .nav-pills button:hover{ background: rgba(255,255,255,0.45); }
+  .nav-pills button.active{
+    background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; border-color:transparent;
+    box-shadow: 0 6px 18px rgba(160,100,170,0.35);
+  }
+
+  .layout{ display:flex; gap:22px; align-items:flex-start; }
+
+  .week-rail{ width: 230px; flex-shrink:0; padding: 18px 14px; max-height: 640px; overflow-y:auto; }
+  .week-rail::-webkit-scrollbar{ width:5px; }
+  .week-rail::-webkit-scrollbar-thumb{ background: rgba(150,110,160,0.3); border-radius:4px; }
+  .week-rail h3{ font-family:'Quicksand'; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color: var(--ink-soft); margin: 4px 8px 12px; }
+  .week-chip{
+    display:flex; align-items:center; gap:10px; padding: 10px 12px; margin-bottom:7px;
+    border-radius: 14px; cursor:pointer; border:1px solid transparent; transition: all .15s ease;
+  }
+  .week-chip:hover{ background: rgba(255,255,255,0.35); }
+  .week-chip.active{
+    background: linear-gradient(135deg, rgba(236,166,196,0.55), rgba(169,139,219,0.4));
+    border-color: rgba(255,255,255,0.7);
+  }
+  .week-chip .gem{
+    width:26px; height:26px; border-radius:8px; flex-shrink:0;
+    background: linear-gradient(145deg, #fff, #E6DFF2);
+    display:flex; align-items:center; justify-content:center; font-size:12px;
+  }
+  .week-chip.complete .gem{ background: linear-gradient(145deg, var(--mint), var(--mint-deep)); }
+  .week-chip .wn{ font-family:'Quicksand'; font-weight:600; font-size:13px; }
+  .week-chip .wd{ font-family:'JetBrains Mono'; font-size:9px; color: var(--ink-soft); display:block; }
+  .add-week-btn{
+    width:100%; margin-top:6px; padding:10px; border-radius:14px; cursor:pointer;
+    background: rgba(255,255,255,0.25); border:1px dashed rgba(150,110,160,0.4);
+    font-family:'Quicksand'; font-weight:600; font-size:12.5px; color: var(--ink-soft);
+  }
+  .add-week-btn:hover{ background: rgba(255,255,255,0.4); color: var(--amethyst-deep); }
+
+  .panel{ flex:1; min-width:0; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .head-card{ padding: 22px 26px; margin-bottom: 18px; display:flex; justify-content:space-between; align-items:center; }
+  .head-card h2{ font-family:'Quicksand'; font-weight:700; font-size:22px; margin:0 0 4px; }
+  .head-card .sub{ font-family:'JetBrains Mono'; font-size:11.5px; color: var(--ink-soft); }
+  .xp-pill{
+    font-family:'JetBrains Mono'; font-size:11px; font-weight:600; color: var(--amber-deep);
+    background: rgba(239,192,126,0.3); padding:6px 12px; border-radius:20px; border:1px solid rgba(217,154,62,0.3);
+  }
+
+  .card{ padding: 22px 26px; margin-bottom: 18px; }
+  .card-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .card-head h3{ font-family:'Quicksand'; font-weight:700; font-size:15px; margin:0; }
+  .card-head .count{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
+
+  .add-row{ display:flex; gap:8px; margin-bottom:14px; }
+  .add-row input{
+    flex:1; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55);
+    padding:10px 14px; font-family:'Inter'; font-size:13.5px; border-radius: 12px; color: var(--ink);
+  }
+  .add-row input::placeholder{ color: var(--ink-soft); }
+  .add-row input:focus{ outline:none; border-color: var(--amethyst); box-shadow: 0 0 0 3px rgba(169,139,219,0.2); }
+  .add-row button{
+    background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; border:none;
+    padding: 0 18px; font-family:'Quicksand'; font-weight:700; font-size:13px; border-radius: 12px; cursor:pointer;
+  }
+  .add-row button:hover{ filter: brightness(1.06); }
+
+  .task-item{
+    display:flex; align-items:center; gap:11px; padding: 10px 8px; margin-bottom:6px;
+    border-radius:12px; background: rgba(255,255,255,0.28); border:1px solid rgba(255,255,255,0.4);
+    transition: all .15s ease;
+  }
+  .task-item.done{ background: rgba(143,220,196,0.22); border-color: rgba(92,190,158,0.35); }
+  .task-item .check{
+    width:22px; height:22px; border-radius:50%; border:2px solid var(--amethyst); flex-shrink:0; cursor:pointer;
+    position:relative; background: rgba(255,255,255,0.6);
+  }
+  .task-item.done .check{ background: linear-gradient(135deg, var(--mint), var(--mint-deep)); border-color: var(--mint-deep); }
+  .task-item.done .check::after{
+    content:''; position:absolute; left:6px; top:2px; width:6px; height:11px;
+    border: solid white; border-width: 0 2px 2px 0; transform: rotate(40deg);
+  }
+  .task-item .txt{ flex:1; font-size:13.5px; cursor:pointer; }
+  .task-item.done .txt{ text-decoration: line-through; color: var(--ink-soft); }
+  .task-item .xp-tag{ font-family:'JetBrains Mono'; font-size:10px; color: var(--amber-deep); flex-shrink:0; }
+  .task-item .del{ background:none; border:none; color: var(--rose-deep); font-size:17px; cursor:pointer; opacity:0.5; flex-shrink:0; }
+  .task-item .del:hover{ opacity:1; }
+  .empty{ font-family:'JetBrains Mono'; font-size:12px; color: var(--ink-soft); padding: 8px 4px; }
+
+  .notes-area{
+    width:100%; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.5);
+    border-radius:12px; font-family:'Inter'; font-size:13px; padding:12px; color: var(--ink);
+    resize:vertical; min-height:70px;
+  }
+  .notes-area:focus{ outline:none; border-color: var(--amethyst); }
+
+  .skill-item{ padding: 14px 4px; border-bottom: 1px solid rgba(150,110,160,0.14); }
+  .skill-item:last-child{ border-bottom:none; }
+  .skill-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .skill-name{ font-family:'Quicksand'; font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .skill-name .gem-icon{ font-size:13px; }
+  .skill-status{
+    font-family:'JetBrains Mono'; font-size:9.5px; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .st-0{ background: rgba(150,110,160,0.15); color: var(--ink-soft); }
+  .st-1{ background: rgba(169,139,219,0.25); color: var(--amethyst-deep); }
+  .st-2{ background: rgba(239,192,126,0.3); color: var(--amber-deep); }
+  .st-3{ background: rgba(143,220,196,0.3); color: var(--mint-deep); }
+  .skill-bar-row{ display:flex; align-items:center; gap:12px; }
+  .skill-bar{ flex:1; height:9px; background: rgba(150,110,160,0.15); border-radius:6px; overflow:hidden; }
+  .skill-bar-fill{ height:100%; border-radius:6px; background: linear-gradient(90deg, var(--amethyst), var(--rose), var(--amber)); transition: width .25s ease; }
+  .skill-item input[type=range]{ width:110px; accent-color: var(--amethyst-deep); }
+  .skill-del{ background:none; border:none; color: var(--rose-deep); font-size:15px; opacity:0.5; cursor:pointer; }
+  .skill-del:hover{ opacity:1; }
+
+  .badge-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:12px; }
+  .badge{
+    padding: 16px 12px; border-radius:16px; text-align:center;
+    background: rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.4);
+    opacity: 0.4; filter: grayscale(0.6);
+  }
+  .badge.unlocked{
+    opacity:1; filter:none;
+    background: linear-gradient(160deg, rgba(255,255,255,0.55), rgba(236,166,196,0.25));
+    border-color: rgba(255,255,255,0.7);
+    box-shadow: 0 6px 18px rgba(160,100,170,0.18);
+  }
+  .badge .bicon{ font-size:26px; margin-bottom:8px; }
+  .badge .bname{ font-family:'Quicksand'; font-weight:700; font-size:12.5px; margin-bottom:3px; }
+  .badge .bdesc{ font-family:'JetBrains Mono'; font-size:9px; color: var(--ink-soft); line-height:1.4; }
+
+  .footer-note{ font-family:'JetBrains Mono'; font-size:10px; color: rgba(58,46,66,0.45); text-align:center; margin-top:14px; }
+  .reset-link{ color: rgba(58,46,66,0.45); cursor:pointer; text-decoration:underline; }
+
+  @media (max-width: 860px){
+    .layout{ flex-direction:column; }
+    .week-rail{ width:100%; display:flex; flex-direction:column; max-height:none; }
+    .topbar{ flex-direction:column; align-items:flex-start; gap:12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="topbar glass">
+    <div class="brand">
+      <div class="orb"></div>
+      <div>
+        <h1>Internship Quest</h1>
+        <div class="tag">SEASON START · 03 AUG 2026</div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="level-badge">
+        <div class="level-ring">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(150,110,160,0.18)" stroke-width="5"/>
+            <circle id="lvlRing" cx="26" cy="26" r="22" fill="none" stroke="url(#gradRing)" stroke-width="5"
+              stroke-dasharray="138.2" stroke-dashoffset="138.2" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="gradRing" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ECA6C4"/>
+                <stop offset="100%" stop-color="#A98BDB"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="lvl-num" id="lvlNum">1</div>
+        </div>
+        <div class="level-text">
+          <div class="lt-top">Level <span id="lvlText">1</span></div>
+          <div class="lt-sub" id="xpText">0 / 150 XP</div>
+        </div>
+      </div>
+      <div class="streak-badge">
+        <span class="flame">🔥</span>
+        <span id="streakText">0 week streak</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-pills">
+    <button data-view="tasks" class="active">Weekly quests</button>
+    <button data-view="skills">Skill tree</button>
+    <button data-view="badges">Achievements</button>
+  </div>
+
+  <div class="layout">
+    <aside class="week-rail glass">
+      <h3>Weeks</h3>
+      <div id="weekList"></div>
+      <button class="add-week-btn" id="addWeek">+ Add next week</button>
+    </aside>
+
+    <div class="panel">
+
+      <section class="view active" id="view-tasks">
+        <div class="head-card glass">
+          <div>
+            <h2 id="taskTitle">Week 32</h2>
+            <div class="sub" id="taskRange">03 Aug 2026 – 09 Aug 2026</div>
+          </div>
+          <div class="xp-pill" id="weekXpPill">+0 XP earned</div>
+        </div>
+
+        <div class="card glass">
+          <div class="card-head"><h3>Quests</h3><span class="count" id="taskCount">0 / 0 done</span></div>
+          <div class="add-row">
+            <input type="text" id="taskInput" placeholder="Add a quest for this week…" maxlength="140">
+            <button id="taskAddBtn">Add</button>
+          </div>
+          <div id="taskListBox"></div>
+        </div>
+
+        <div class="card glass">
+          <div class="card-head"><h3>Notes</h3></div>
+          <textarea class="notes-area" id="notesArea" placeholder="Reflections, blockers, wins for this week…"></textarea>
+        </div>
+      </section>
+
+      <section class="view" id="view-skills">
+        <div class="head-card glass">
+          <div>
+            <h2>Skill tree</h2>
+            <div class="sub">Level up your abilities across the whole internship</div>
+          </div>
+        </div>
+        <div class="card glass">
+          <div class="card-head"><h3>Skills</h3><span class="count" id="skillCount">0 tracked</span></div>
+          <div class="add-row">
+            <input type="text" id="skillInput" placeholder="Add a skill, e.g. React, SQL, Public Speaking…" maxlength="60">
+            <button id="skillAddBtn">Add</button>
+          </div>
+          <div id="skillListBox"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-badges">
+        <div class="head-card glass">
+          <div>
+            <h2>Achievements</h2>
+            <div class="sub">Unlocked automatically as you progress</div>
+          </div>
+        </div>
+        <div class="card glass">
+          <div class="badge-grid" id="badgeGrid"></div>
+        </div>
+      </section>
+
+      <div class="footer-note">Saved automatically to your account · <span class="reset-link" id="resetAll">reset all data</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const START_ISO = '2026-08-03';
+const START_WEEK_NUM = 32;
+const STORAGE_KEY = 'tracker-state-glass';
+const XP_PER_TASK = 10;
+const XP_PER_LEVEL = 150;
+
+let state = null;
+let currentWeekId = null;
+
+function fmtDate(d){ return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
+function addDays(dateStr, days){ const d = new Date(dateStr + 'T00:00:00'); d.setDate(d.getDate()+days); return d; }
+function makeWeek(index){
+  const start = addDays(START_ISO, index*7);
+  const end = addDays(START_ISO, index*7+6);
+  return { id:'w'+(START_WEEK_NUM+index), weekNum: START_WEEK_NUM+index, start: start.toISOString().slice(0,10), end: end.toISOString().slice(0,10), tasks:[], notes:'' };
+}
+function defaultState(){
+  const weeks = [];
+  for(let i=0;i<8;i++) weeks.push(makeWeek(i));
+  return { weeks, skills: [] };
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    state = (res && res.value) ? JSON.parse(res.value) : defaultState();
+    if(!res || !res.value) await saveState();
+  } catch(e){ state = defaultState(); }
+}
+async function saveState(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
+  catch(e){ console.error('Save failed', e); }
+}
+function currentWeek(){ return state.weeks.find(w => w.id === currentWeekId); }
+
+function computeXP(){
+  let taskXp = 0;
+  state.weeks.forEach(w => { taskXp += w.tasks.filter(t=>t.done).length * XP_PER_TASK; });
+  let skillXp = 0;
+  state.skills.forEach(s => { skillXp += Math.round(s.level / 5); });
+  return taskXp + skillXp;
+}
+function computeStreak(){
+  const sorted = [...state.weeks].sort((a,b)=> b.weekNum - a.weekNum);
+  const today = new Date().toISOString().slice(0,10);
+  let started = false, streak = 0;
+  for(const w of sorted){
+    if(w.start > today) continue;
+    if(!started) started = true;
+    const complete = w.tasks.length > 0 && w.tasks.every(t=>t.done);
+    if(complete) streak++; else break;
+  }
+  return streak;
+}
+function totalTasksDone(){
+  let total=0; state.weeks.forEach(w=>total+=w.tasks.filter(t=>t.done).length); return total;
+}
+function overallPct(){
+  let total=0, done=0;
+  state.weeks.forEach(w=>{ total+=w.tasks.length; done+=w.tasks.filter(t=>t.done).length; });
+  return total ? Math.round((done/total)*100) : 0;
+}
+
+const BADGES = [
+  { id:'first', icon:'🌱', name:'First Steps', desc:'Complete your first quest', test: () => totalTasksDone() >= 1 },
+  { id:'ten', icon:'⚡', name:'Momentum', desc:'Complete 10 quests', test: () => totalTasksDone() >= 10 },
+  { id:'twentyfive', icon:'🏆', name:'Task Master', desc:'Complete 25 quests', test: () => totalTasksDone() >= 25 },
+  { id:'skillbuilder', icon:'🧩', name:'Skill Builder', desc:'Track 3+ skills', test: () => state.skills.length >= 3 },
+  { id:'rising', icon:'✨', name:'Rising Star', desc:'A skill reaches 50%', test: () => state.skills.some(s=>s.level>=50) },
+  { id:'proficient', icon:'💎', name:'Proficient', desc:'A skill reaches 100%', test: () => state.skills.some(s=>s.level>=100) },
+  { id:'streak2', icon:'🔥', name:'On Fire', desc:'2-week streak', test: () => computeStreak() >= 2 },
+  { id:'streak4', icon:'🌟', name:'Unstoppable', desc:'4-week streak', test: () => computeStreak() >= 4 },
+  { id:'halfway', icon:'🚀', name:'Halfway There', desc:'50% overall completion', test: () => overallPct() >= 50 },
+];
+
+function statusForLevel(lvl){
+  if(lvl < 25) return {label:'Starting', cls:'st-0'};
+  if(lvl < 50) return {label:'Learning', cls:'st-1'};
+  if(lvl < 75) return {label:'Practicing', cls:'st-2'};
+  return {label:'Proficient', cls:'st-3'};
+}
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+function renderTopbar(){
+  const xp = computeXP();
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+  const inLevel = xp % XP_PER_LEVEL;
+  const circ = 138.2;
+  document.getElementById('lvlRing').style.strokeDashoffset = circ - (circ * inLevel/XP_PER_LEVEL);
+  document.getElementById('lvlNum').textContent = level;
+  document.getElementById('lvlText').textContent = level;
+  document.getElementById('xpText').textContent = `${inLevel} / ${XP_PER_LEVEL} XP`;
+  const streak = computeStreak();
+  document.getElementById('streakText').textContent = streak + (streak===1 ? ' week streak' : ' week streak');
+}
+
+function renderWeekList(){
+  const box = document.getElementById('weekList');
+  box.innerHTML = '';
+  state.weeks.forEach(w => {
+    const complete = w.tasks.length > 0 && w.tasks.every(t=>t.done);
+    const el = document.createElement('div');
+    el.className = 'week-chip' + (w.id===currentWeekId ? ' active':'') + (complete ? ' complete':'');
+    el.innerHTML = `
+      <div class="gem">${complete ? '✓' : ''}</div>
+      <div>
+        <span class="wn">W${w.weekNum}</span>
+        <span class="wd">${fmtDate(new Date(w.start+'T00:00:00'))}</span>
+      </div>`;
+    el.addEventListener('click', ()=>{ currentWeekId = w.id; renderAll(); });
+    box.appendChild(el);
+  });
+}
+
+function renderTasksView(){
+  const w = currentWeek();
+  if(!w) return;
+  document.getElementById('taskTitle').textContent = 'Week ' + w.weekNum;
+  document.getElementById('taskRange').textContent = fmtDate(new Date(w.start+'T00:00:00')) + '  –  ' + fmtDate(new Date(w.end+'T00:00:00'));
+  const weekXp = w.tasks.filter(t=>t.done).length * XP_PER_TASK;
+  document.getElementById('weekXpPill').textContent = `+${weekXp} XP earned`;
+
+  const listBox = document.getElementById('taskListBox');
+  listBox.innerHTML = '';
+  if(w.tasks.length===0){
+    listBox.innerHTML = '<div class="empty">No quests logged yet for this week.</div>';
+  } else {
+    w.tasks.forEach(t=>{
+      const row = document.createElement('div');
+      row.className = 'task-item' + (t.done ? ' done':'');
+      row.innerHTML = `
+        <span class="check" data-id="${t.id}"></span>
+        <span class="txt" data-id="${t.id}">${escapeHtml(t.text)}</span>
+        <span class="xp-tag">+${XP_PER_TASK} XP</span>
+        <button class="del" data-id="${t.id}">×</button>`;
+      listBox.appendChild(row);
+    });
+  }
+  const doneCt = w.tasks.filter(t=>t.done).length;
+  document.getElementById('taskCount').textContent = `${doneCt} / ${w.tasks.length} done`;
+  document.getElementById('notesArea').value = w.notes || '';
+}
+
+function renderSkillsView(){
+  const box = document.getElementById('skillListBox');
+  box.innerHTML = '';
+  document.getElementById('skillCount').textContent = state.skills.length + ' tracked';
+  if(state.skills.length===0){
+    box.innerHTML = '<div class="empty">No skills added yet.</div>';
+    return;
+  }
+  state.skills.forEach(s=>{
+    const st = statusForLevel(s.level);
+    const row = document.createElement('div');
+    row.className = 'skill-item';
+    row.innerHTML = `
+      <div class="skill-top">
+        <span class="skill-name"><span class="gem-icon">💠</span>${escapeHtml(s.name)}</span>
+        <span class="skill-status ${st.cls}">${st.label}</span>
+      </div>
+      <div class="skill-bar-row">
+        <div class="skill-bar"><div class="skill-bar-fill" style="width:${s.level}%"></div></div>
+        <input type="range" min="0" max="100" value="${s.level}" data-id="${s.id}" class="skill-range">
+        <button class="skill-del" data-id="${s.id}">×</button>
+      </div>`;
+    box.appendChild(row);
+  });
+}
+
+function renderBadges(){
+  const grid = document.getElementById('badgeGrid');
+  grid.innerHTML = '';
+  BADGES.forEach(b => {
+    const unlocked = b.test();
+    const el = document.createElement('div');
+    el.className = 'badge' + (unlocked ? ' unlocked' : '');
+    el.innerHTML = `
+      <div class="bicon">${b.icon}</div>
+      <div class="bname">${b.name}</div>
+      <div class="bdesc">${b.desc}</div>`;
+    grid.appendChild(el);
+  });
+}
+
+function renderAll(){
+  renderTopbar();
+  renderWeekList();
+  renderTasksView();
+  renderSkillsView();
+  renderBadges();
+}
+
+document.querySelectorAll('.nav-pills button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-pills button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  });
+});
+
+document.getElementById('addWeek').addEventListener('click', async ()=>{
+  state.weeks.push(makeWeek(state.weeks.length));
+  await saveState();
+  renderAll();
+});
+
+document.getElementById('taskAddBtn').addEventListener('click', addTask);
+document.getElementById('taskInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addTask(); });
+async function addTask(){
+  const input = document.getElementById('taskInput');
+  const text = input.value.trim();
+  if(!text) return;
+  currentWeek().tasks.push({ id: uid(), text, done:false });
+  input.value = '';
+  await saveState();
+  renderAll();
+}
+
+document.getElementById('taskListBox').addEventListener('click', async (e)=>{
+  const id = e.target.dataset.id;
+  if(!id) return;
+  const w = currentWeek();
+  if(e.target.classList.contains('del')){
+    w.tasks = w.tasks.filter(t=>t.id!==id);
+  } else {
+    const t = w.tasks.find(t=>t.id===id);
+    if(t) t.done = !t.done;
+  }
+  await saveState();
+  renderAll();
+});
+
+let notesTimer;
+document.getElementById('notesArea').addEventListener('input', (e)=>{
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(async ()=>{
+    currentWeek().notes = e.target.value;
+    await saveState();
+  }, 500);
+});
+
+document.getElementById('skillAddBtn').addEventListener('click', addSkill);
+document.getElementById('skillInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addSkill(); });
+async function addSkill(){
+  const input = document.getElementById('skillInput');
+  const name = input.value.trim();
+  if(!name) return;
+  state.skills.push({ id: uid(), name, level: 10 });
+  input.value = '';
+  await saveState();
+  renderAll();
+}
+
+document.getElementById('skillListBox').addEventListener('input', (e)=>{
+  if(!e.target.classList.contains('skill-range')) return;
+  const s = state.skills.find(s=>s.id===e.target.dataset.id);
+  if(s){ s.level = parseInt(e.target.value,10); renderSkillsView(); renderTopbar(); }
+});
+document.getElementById('skillListBox').addEventListener('change', async (e)=>{
+  if(e.target.classList.contains('skill-range')) { await saveState(); renderBadges(); }
+});
+document.getElementById('skillListBox').addEventListener('click', async (e)=>{
+  if(!e.target.classList.contains('skill-del')) return;
+  state.skills = state.skills.filter(s=>s.id!==e.target.dataset.id);
+  await saveState();
+  renderAll();
+});
+
+document.getElementById('resetAll').addEventListener('click', async ()=>{
+  if(!confirm('Reset all tracker data? This cannot be undone.')) return;
+  state = defaultState();
+  await saveState();
+  currentWeekId = state.weeks[0].id;
+  renderAll();
+});
+
+function spawnBubbles(){
+  const specs = [
+    {size:120, top:'6%', left:'2%'}, {size:70, top:'70%', left:'5%'},
+    {size:90, top:'12%', left:'88%'}, {size:50, top:'55%', left:'92%'},
+    {size:60, top:'85%', left:'40%'}
+  ];
+  specs.forEach(s=>{
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    b.style.width = s.size+'px'; b.style.height = s.size+'px';
+    b.style.top = s.top; b.style.left = s.left;
+    document.body.appendChild(b);
+  });
+}
+
+(async function init(){
+  spawnBubbles();
+  await loadState();
+  const today = new Date().toISOString().slice(0,10);
+  const match = state.weeks.find(w => today >= w.start && today <= w.end);
+  currentWeekId = (match || state.weeks[0]).id;
+  renderAll();
+})();
+</script>
+</body>
+</html>
