@@ -391,7 +391,8 @@ let currentWeekId = null;
 function fmtDate(d){ return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }); }
 function fmtDateFull(d){ return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
 function addDays(dateStr, days){ const d = new Date(dateStr + 'T00:00:00'); d.setDate(d.getDate()+days); return d; }
-function isoOf(d){ return d.toISOString().slice(0,10); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function isoOf(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
 
 function makeWeek(index){
   const startD = addDays(START_ISO, index*7);
@@ -421,6 +422,13 @@ async function loadState(){
     if(!res || !res.value) await saveState();
   } catch(e){ state = defaultState(); }
   state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
+  state.weeks.forEach(w => {
+    const startD = addDays(START_ISO, (w.weekNum - START_WEEK_NUM) * 7);
+    w.start = isoOf(startD);
+    w.end = isoOf(addDays(w.start, 6));
+    w.days.forEach((day, i) => { day.date = isoOf(addDays(w.start, i)); });
+  });
+  await saveState();
 }
 async function saveState(){
   try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
