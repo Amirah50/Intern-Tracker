@@ -235,6 +235,38 @@
   @media (max-width: 640px){ .reflect-grid{ grid-template-columns: 1fr; } }
 
   .footer-note{ font-family:'JetBrains Mono'; font-size:10px; color: rgba(58,46,66,0.45); text-align:center; margin-top:14px; }
+  .sync-status{ display:inline-flex; align-items:center; gap:5px; }
+  .sync-dot{ width:6px; height:6px; border-radius:50%; background: var(--mint-deep); }
+  .sync-dot.syncing{ background: var(--amber-deep); animation: pulse 1s infinite ease-in-out; }
+  .sync-dot.error{ background: var(--coral-deep); }
+  .sync-dot.local{ background: var(--ink-soft); }
+
+  .modal-overlay{
+    display:none; position:fixed; inset:0; z-index:60; background: rgba(58,46,66,0.35);
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal{ width:100%; max-width: 440px; padding:24px 26px; max-height:85vh; overflow-y:auto; }
+  .modal h3{ font-family:'Quicksand'; font-weight:700; font-size:17px; margin:0 0 10px; }
+  .modal-p{ font-size:12.5px; line-height:1.5; color: var(--ink-soft); margin: 0 0 12px; }
+  .modal-steps{ font-size:12px; line-height:1.6; color: var(--ink); padding-left:18px; margin: 0 0 14px; }
+  .modal-steps a{ color: var(--amethyst-deep); }
+  .modal-label{ font-family:'Quicksand'; font-weight:700; font-size:11.5px; display:block; margin: 10px 0 6px; }
+  .modal-input{
+    width:100%; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.6);
+    padding:9px 12px; font-family:'JetBrains Mono'; font-size:12px; border-radius:10px; color: var(--ink);
+  }
+  .modal-input:focus{ outline:none; border-color: var(--amethyst); }
+  .modal-row{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+  .modal-btn{
+    font-family:'Quicksand'; font-weight:600; font-size:12.5px; padding:9px 16px; border-radius:10px; cursor:pointer;
+    background: rgba(255,255,255,0.4); border:1px solid rgba(150,110,160,0.25); color: var(--ink);
+  }
+  .modal-btn.primary{ background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; border-color:transparent; }
+  .modal-msg{ font-family:'JetBrains Mono'; font-size:11px; margin-top:12px; color: var(--ink-soft); word-break:break-word; }
+  .modal-msg.ok{ color: var(--mint-deep); }
+  .modal-msg.err{ color: var(--coral-deep); }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
   .reset-link{ color: rgba(58,46,66,0.45); cursor:pointer; text-decoration:underline; }
 
   @media (max-width: 900px){
@@ -357,8 +389,45 @@
         <div id="skillListBox"></div>
       </section>
 
-      <div class="footer-note">Autosaved to your account, so it's here next time you open this link · <span class="reset-link" id="resetAll">reset all data</span></div>
+      <div class="footer-note">
+        <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced to your account</span></span>
+        · <span class="reset-link" id="syncSetupLink" style="display:none;">set up cross-device sync</span>
+        · <span class="reset-link" id="exportBtn">export backup</span>
+        · <span class="reset-link" id="importBtn">import backup</span>
+        · <span class="reset-link" id="resetAll">reset all data</span>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+      </div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="importResultModal">
+  <div class="modal glass">
+    <h3 id="importResultTitle">Backup imported</h3>
+    <p class="modal-p" id="importResultMsg"></p>
+    <div class="modal-row"><button class="modal-btn primary" id="importResultClose">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="syncModal">
+  <div class="modal glass">
+    <h3>Cross-device sync</h3>
+    <p class="modal-p">This page is running outside Claude, so it saves to a private <b>GitHub Gist</b> on your own account instead — no third-party service needed.</p>
+    <ol class="modal-steps">
+      <li>Create a token at <a href="https://github.com/settings/tokens/new?scopes=gist&description=Internship%20Quest%20Sync" target="_blank" rel="noopener">github.com/settings/tokens</a> with just the <b>gist</b> scope checked.</li>
+      <li>Paste it below and hit Connect. On your first device this creates a private gist; copy the Gist ID it gives you.</li>
+      <li>On every other device, paste the <b>same token</b> and that <b>same Gist ID</b> before connecting, so they all point at one place.</li>
+    </ol>
+    <label class="modal-label">Personal access token</label>
+    <input type="password" id="syncTokenInput" class="modal-input" placeholder="ghp_…">
+    <label class="modal-label">Gist ID <span style="opacity:0.6; font-weight:400;">(leave blank on your first device)</span></label>
+    <input type="text" id="syncGistInput" class="modal-input" placeholder="e.g. a1b2c3d4e5f6…">
+    <div class="modal-row">
+      <button class="modal-btn primary" id="syncConnectBtn">Connect</button>
+      <button class="modal-btn" id="syncDisconnectBtn">Disconnect</button>
+      <button class="modal-btn" id="syncCloseBtn">Close</button>
+    </div>
+    <div class="modal-msg" id="syncModalMsg"></div>
   </div>
 </div>
 
@@ -415,12 +484,126 @@ function defaultState(){
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
+const USING_CLAUDE_STORAGE = (typeof window.storage !== 'undefined' && window.storage !== null);
+const LOCAL_CACHE_KEY = 'internship-quest-cache-v1';
+const SYNC_TOKEN_KEY = 'internship-quest-sync-token';
+const SYNC_GIST_KEY = 'internship-quest-sync-gist';
+const GIST_FILENAME = 'internship-quest-data.json';
+
+function setSyncStatus(mode){
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  if(!dot || !text) return;
+  const classes = { syncing:'syncing', error:'error', local:'local' };
+  dot.className = 'sync-dot' + (classes[mode] ? ' ' + classes[mode] : '');
+  const labels = {
+    syncing: 'Saving…',
+    error: 'Not synced — retrying…',
+    local: 'Saved on this device only',
+    ok: USING_CLAUDE_STORAGE ? 'Synced to your account' : 'Synced across your devices'
+  };
+  text.textContent = labels[mode] || labels.ok;
+}
+
+async function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// Retries a storage call a few times before giving up, so a brief network
+// hiccup never gets treated the same as "no data has ever been saved".
+async function withRetry(fn, attempts = 4){
+  let lastErr;
+  for(let i=0;i<attempts;i++){
+    try{ return await fn(); }
+    catch(e){ lastErr = e; if(i < attempts-1) await sleep(350 * (i+1)); }
+  }
+  throw lastErr;
+}
+
+function getSyncConfig(){
+  return { token: localStorage.getItem(SYNC_TOKEN_KEY) || '', gistId: localStorage.getItem(SYNC_GIST_KEY) || '' };
+}
+function setSyncConfig(token, gistId){
+  if(token) localStorage.setItem(SYNC_TOKEN_KEY, token); else localStorage.removeItem(SYNC_TOKEN_KEY);
+  if(gistId) localStorage.setItem(SYNC_GIST_KEY, gistId); else localStorage.removeItem(SYNC_GIST_KEY);
+}
+function getLocalCache(){
+  try{ const raw = localStorage.getItem(LOCAL_CACHE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function setLocalCache(obj){
+  try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(obj)); } catch(e){ console.warn('localStorage write failed', e); }
+}
+
+async function gistPull(token, gistId){
+  const res = await fetch('https://api.github.com/gists/' + gistId, {
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
+  });
+  if(!res.ok) throw new Error('Gist read failed (' + res.status + ')');
+  const data = await res.json();
+  const file = data.files && data.files[GIST_FILENAME];
+  if(!file || !file.content) throw new Error('No tracker data in that gist yet');
+  return JSON.parse(file.content);
+}
+async function gistPush(token, gistId, obj){
+  const body = { files: {} };
+  body.files[GIST_FILENAME] = { content: JSON.stringify(obj, null, 2) };
+  let url = 'https://api.github.com/gists';
+  let method = 'POST';
+  if(gistId){ url += '/' + gistId; method = 'PATCH'; }
+  else { body.description = 'Internship Quest tracker data'; body.public = false; }
+  const res = await fetch(url, {
+    method,
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('Gist write failed (' + res.status + ')');
+  const data = await res.json();
+  return data.id;
+}
+
 async function loadState(){
-  try{
-    const res = await window.storage.get(STORAGE_KEY, false);
-    state = (res && res.value) ? JSON.parse(res.value) : defaultState();
-    if(!res || !res.value) await saveState();
-  } catch(e){ state = defaultState(); }
+  let loadedExisting = false;
+
+  if(USING_CLAUDE_STORAGE){
+    try{
+      const res = await withRetry(() => window.storage.get(STORAGE_KEY, false));
+      if(res && res.value){ state = JSON.parse(res.value); loadedExisting = true; }
+    } catch(e){
+      // Genuinely no data yet, or the read failed even after retries — either way,
+      // do not write a blank state over anything that might already exist.
+      console.warn('No existing data found, or read failed after retries:', e);
+    }
+  } else {
+    // Deployed outside Claude: start from whatever is cached in this browser,
+    // then try to pull the authoritative copy from the linked GitHub Gist.
+    const cached = getLocalCache();
+    if(cached){ state = cached; loadedExisting = true; }
+    const { token, gistId } = getSyncConfig();
+    if(token && gistId){
+      try{
+        setSyncStatus('syncing');
+        const remote = await withRetry(() => gistPull(token, gistId));
+        state = remote;
+        loadedExisting = true;
+        setLocalCache(state);
+        setSyncStatus('ok');
+      } catch(e){
+        console.warn('Cloud sync pull failed, using this device local copy instead:', e);
+        setSyncStatus('error');
+      }
+    }
+  }
+
+  if(!loadedExisting) state = defaultState();
+
+  applyMigrations();
+
+  // Only write back automatically when we're touching real, previously-saved
+  // data (to persist the date fix) or a fresh brand-new tracker. A failed read
+  // is left untouched so a later successful load can't be clobbered.
+  if(loadedExisting) await saveState();
+}
+
+function applyMigrations(){
   state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
   state.weeks.forEach(w => {
     const startD = addDays(START_ISO, (w.weekNum - START_WEEK_NUM) * 7);
@@ -428,11 +611,35 @@ async function loadState(){
     w.end = isoOf(addDays(w.start, 6));
     w.days.forEach((day, i) => { day.date = isoOf(addDays(w.start, i)); });
   });
-  await saveState();
 }
+
 async function saveState(){
-  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
-  catch(e){ console.error('Save failed', e); }
+  if(USING_CLAUDE_STORAGE){
+    setSyncStatus('syncing');
+    try{
+      await withRetry(() => window.storage.set(STORAGE_KEY, JSON.stringify(state), false));
+      setSyncStatus('ok');
+    } catch(e){
+      console.error('Save failed after retries', e);
+      setSyncStatus('error');
+    }
+    return;
+  }
+
+  // Deployed outside Claude: always cache locally first (instant, never fails),
+  // then push to the linked GitHub Gist if cross-device sync is configured.
+  setLocalCache(state);
+  const { token, gistId } = getSyncConfig();
+  if(!token){ setSyncStatus('local'); return; }
+  setSyncStatus('syncing');
+  try{
+    const newId = await withRetry(() => gistPush(token, gistId, state));
+    if(!gistId) setSyncConfig(token, newId);
+    setSyncStatus('ok');
+  } catch(e){
+    console.error('Cloud sync push failed after retries', e);
+    setSyncStatus('error');
+  }
 }
 function currentWeek(){ return state.weeks.find(w => w.id === currentWeekId); }
 function allTasksOfWeek(w){ return w.days.flatMap(d => d.tasks); }
@@ -877,6 +1084,118 @@ document.getElementById('resetAll').addEventListener('click', async ()=>{
   await saveState();
   currentWeekId = state.weeks[0].id;
   renderAll();
+});
+
+function showImportResult(title, msg){
+  document.getElementById('importResultTitle').textContent = title;
+  document.getElementById('importResultMsg').textContent = msg;
+  document.getElementById('importResultModal').classList.add('show');
+}
+document.getElementById('importResultClose').addEventListener('click', () => {
+  document.getElementById('importResultModal').classList.remove('show');
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = isoOf(new Date());
+  a.href = url;
+  a.download = `internship-quest-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    if(!parsed || !Array.isArray(parsed.weeks)){
+      showImportResult('Import failed', 'That file doesn\'t look like a tracker backup — expected a "weeks" list in the JSON.');
+      return;
+    }
+    if(!confirm('Import this backup? It will replace everything currently in this tracker.')) return;
+    state = parsed;
+    if(!Array.isArray(state.skills)) state.skills = [];
+    applyMigrations();
+    await saveState();
+    currentWeekId = state.weeks[0] ? state.weeks[0].id : null;
+    const today = isoOf(new Date());
+    const match = state.weeks.find(w => today >= w.start && today <= w.end);
+    if(match) currentWeekId = match.id;
+    renderAll();
+    showImportResult('Backup imported', 'Your tracker data has been restored from the backup file.');
+  } catch(err){
+    console.error('Import failed', err);
+    showImportResult('Import failed', 'Could not read that file as valid backup JSON.');
+  }
+});
+
+function openSyncModal(){
+  const { token, gistId } = getSyncConfig();
+  document.getElementById('syncTokenInput').value = token;
+  document.getElementById('syncGistInput').value = gistId;
+  document.getElementById('syncModalMsg').textContent = '';
+  document.getElementById('syncModalMsg').className = 'modal-msg';
+  document.getElementById('syncModal').classList.add('show');
+}
+function closeSyncModal(){ document.getElementById('syncModal').classList.remove('show'); }
+
+const syncSetupLink = document.getElementById('syncSetupLink');
+if(!USING_CLAUDE_STORAGE){
+  syncSetupLink.style.display = 'inline';
+  syncSetupLink.addEventListener('click', openSyncModal);
+} else {
+  document.getElementById('syncModal').remove();
+}
+
+document.getElementById('syncCloseBtn')?.addEventListener('click', closeSyncModal);
+document.getElementById('syncModal')?.addEventListener('click', (e) => { if(e.target.id === 'syncModal') closeSyncModal(); });
+
+document.getElementById('syncConnectBtn')?.addEventListener('click', async () => {
+  const token = document.getElementById('syncTokenInput').value.trim();
+  const gistIdInput = document.getElementById('syncGistInput').value.trim();
+  const msg = document.getElementById('syncModalMsg');
+  if(!token){ msg.textContent = 'Paste a personal access token first.'; msg.className = 'modal-msg err'; return; }
+  msg.textContent = 'Connecting…'; msg.className = 'modal-msg';
+  try{
+    if(gistIdInput){
+      // Linking to an existing gist from another device — pull it in as the source of truth.
+      const remote = await gistPull(token, gistIdInput);
+      setSyncConfig(token, gistIdInput);
+      state = remote;
+      state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
+      setLocalCache(state);
+      msg.textContent = 'Connected — pulled your existing data in.'; msg.className = 'modal-msg ok';
+    } else {
+      // First device — create a brand-new gist from what's on this device right now.
+      const newId = await gistPush(token, '', state);
+      setSyncConfig(token, newId);
+      document.getElementById('syncGistInput').value = newId;
+      msg.textContent = 'Connected — Gist ID: ' + newId + ' (copy this to your other devices).'; msg.className = 'modal-msg ok';
+    }
+    setSyncStatus('ok');
+    renderAll();
+  } catch(e){
+    msg.textContent = 'Could not connect: ' + e.message; msg.className = 'modal-msg err';
+  }
+});
+
+document.getElementById('syncDisconnectBtn')?.addEventListener('click', () => {
+  setSyncConfig('', '');
+  document.getElementById('syncTokenInput').value = '';
+  document.getElementById('syncGistInput').value = '';
+  const msg = document.getElementById('syncModalMsg');
+  msg.textContent = 'Disconnected. Saving to this device only from now on.'; msg.className = 'modal-msg';
+  setSyncStatus('local');
 });
 
 function spawnBubbles(){
