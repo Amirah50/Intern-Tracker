@@ -90,7 +90,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="banner"><span class="live-dot"></span>  updates automatically</div>
+  <div class="banner"><span class="live-dot"></span> Live view</div>
   <div id="app"><div class="loading">Loading progress…</div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -107,7 +107,7 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
 
 const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-let uidParam = new URLSearchParams(location.search).get('uid');
+let trackerParam = new URLSearchParams(location.search).get('tracker');
 let state = null, supervisorTasks = {}, comments = {};
 let activeWeekId = null;
 
@@ -224,11 +224,11 @@ function render(){
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = form.querySelector('.at-text').value.trim();
-      if(!text || !uidParam) return;
+      if(!text || !trackerParam) return;
       const priority = form.querySelector('.at-priority').value;
       const time = form.querySelector('.at-time').value;
       const date = form.dataset.date;
-      db.ref('users/' + uidParam + '/supervisorTasks/' + uid()).set({
+      db.ref('trackers/' + trackerParam + '/supervisorTasks/' + uid()).set({
         text, priority, time, date, done:false, addedBy:'supervisor', createdAt: Date.now()
       }).then(() => showToast('Task added ✓')).catch(err => showToast('Could not add task: ' + err.message));
       form.reset();
@@ -240,8 +240,8 @@ function render(){
       e.preventDefault();
       const text = document.getElementById('commentText').value.trim();
       const weekNum = parseInt(document.getElementById('commentWeek').value, 10);
-      if(!text || !uidParam) return;
-      db.ref('users/' + uidParam + '/comments/' + uid()).set({
+      if(!text || !trackerParam) return;
+      db.ref('trackers/' + trackerParam + '/comments/' + uid()).set({
         text, weekNum, createdAt: Date.now()
       }).then(() => showToast('Comment posted ✓')).catch(err => showToast('Could not post: ' + err.message));
       cForm.reset();
@@ -276,20 +276,20 @@ function buildDisplayState(raw){
   return { ...raw, xp, level, rank, streak };
 }
 
-if(!uidParam){
-  document.getElementById('app').innerHTML = '<div class="empty">No report specified. Ask for a link that includes ?uid=…</div>';
+if(!trackerParam){
+  document.getElementById('app').innerHTML = '<div class="empty">No report specified. Ask for a link that includes ?tracker=…</div>';
 } else {
-  db.ref('users/' + uidParam + '/state').on('value', (snap) => {
+  db.ref('trackers/' + trackerParam + '/state').on('value', (snap) => {
     const raw = snap.val();
     state = raw ? buildDisplayState(raw) : null;
     render();
   }, () => { document.getElementById('app').innerHTML = '<div class="empty">Could not load this report.</div>'; });
 
-  db.ref('users/' + uidParam + '/supervisorTasks').on('value', (snap) => {
+  db.ref('trackers/' + trackerParam + '/supervisorTasks').on('value', (snap) => {
     supervisorTasks = snap.val() || {};
     if(state) render();
   });
-  db.ref('users/' + uidParam + '/comments').on('value', (snap) => {
+  db.ref('trackers/' + trackerParam + '/comments').on('value', (snap) => {
     comments = snap.val() || {};
     if(state) render();
   });
