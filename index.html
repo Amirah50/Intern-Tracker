@@ -6,6 +6,7 @@
 <title>Internship Quest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --rose: #ECA6C4; --rose-deep: #D9769E;
@@ -392,6 +393,8 @@
       <div class="footer-note">
         <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced to your account</span></span>
         · <span class="reset-link" id="syncSetupLink" style="display:none;">set up cross-device sync</span>
+        · <span class="reset-link" id="pdfBtn">export PDF report</span>
+        · <span class="reset-link" id="publishBtn">get share link</span>
         · <span class="reset-link" id="exportBtn">export backup</span>
         · <span class="reset-link" id="importBtn">import backup</span>
         · <span class="reset-link" id="resetAll">reset all data</span>
@@ -406,6 +409,20 @@
     <h3 id="importResultTitle">Backup imported</h3>
     <p class="modal-p" id="importResultMsg"></p>
     <div class="modal-row"><button class="modal-btn primary" id="importResultClose">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="shareLinkModal">
+  <div class="modal glass">
+    <h3>View-only share link</h3>
+    <p class="modal-p">Anyone with this link can <b>view</b> your progress — they can't edit anything. It reads from a <b>public</b> GitHub Gist, so treat the link like an unlisted document: don't post it anywhere public, only send it directly to your supervisor.</p>
+    <label class="modal-label">Share this link</label>
+    <input type="text" id="shareLinkInput" class="modal-input" readonly>
+    <div class="modal-row">
+      <button class="modal-btn primary" id="shareLinkCopyBtn">Copy link</button>
+      <button class="modal-btn" id="shareLinkCloseBtn">Close</button>
+    </div>
+    <div class="modal-msg" id="shareLinkMsg"></div>
   </div>
 </div>
 
@@ -531,6 +548,48 @@ function getLocalCache(){
 }
 function setLocalCache(obj){
   try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(obj)); } catch(e){ console.warn('localStorage write failed', e); }
+}
+
+const REPORT_GIST_KEY = 'internship-quest-report-gist';
+const REPORT_GIST_FILENAME = 'internship-quest-report.json';
+
+async function gistPushGeneric(token, gistId, filename, obj, isPublic, description){
+  const body = { files: {} };
+  body.files[filename] = { content: JSON.stringify(obj, null, 2) };
+  let url = 'https://api.github.com/gists';
+  let method = 'POST';
+  if(gistId){ url += '/' + gistId; method = 'PATCH'; }
+  else { body.description = description || 'Internship Quest data'; body.public = !!isPublic; }
+  const res = await fetch(url, {
+    method,
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('Gist write failed (' + res.status + ')');
+  const data = await res.json();
+  return data.id;
+}
+
+function buildReportSnapshot(){
+  const xp = computeXP();
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+  return {
+    generatedAt: new Date().toISOString(),
+    xp, level, rank: rankForLevel(level), streak: computeStreak(),
+    weeks: state.weeks.map(w => ({
+      weekNum: w.weekNum, start: w.start, end: w.end, cleared: w.cleared,
+      days: w.days.map(d => ({
+        date: d.date,
+        tasks: d.tasks.map(t => ({ text: t.text, priority: t.priority, time: t.time, done: t.done }))
+      })),
+      reflection: w.reflection
+    })),
+    skills: state.skills.map(s => ({
+      name: s.name,
+      tier: skillTierInfo(s.entries.length).title,
+      entries: [...s.entries].sort((a,b)=> b.date.localeCompare(a.date)).map(e => ({ date: e.date, note: e.note }))
+    }))
+  };
 }
 
 async function gistPull(token, gistId){
@@ -1136,6 +1195,148 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   } catch(err){
     console.error('Import failed', err);
     showImportResult('Import failed', 'Could not read that file as valid backup JSON.');
+  }
+});
+
+function pdfSectionBreak(doc, y, needed, margin, pageH){
+  if(y + needed > pageH - margin){ doc.addPage(); return margin; }
+  return y;
+}
+
+document.getElementById('pdfBtn').addEventListener('click', () => {
+  if(!window.jspdf){ alert('PDF library failed to load — check your connection and try again.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const margin = 44, pageW = 595.28, pageH = 841.89, lineH = 14;
+  let y = margin;
+
+  const xp = computeXP();
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+  doc.text('Internship Progress Report', margin, y); y += 22;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
+  doc.text('Generated ' + new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }), margin, y); y += 14;
+  doc.text(`Level ${level} · ${rankForLevel(level)} · ${computeStreak()} week streak`, margin, y); y += 24;
+  doc.setTextColor(20);
+
+  state.weeks.forEach(w => {
+    const doneTasks = [];
+    w.days.forEach(day => {
+      day.tasks.filter(t => t.done).forEach(t => doneTasks.push({ date: day.date, ...t }));
+    });
+    if(doneTasks.length === 0 && !w.reflection.did && !w.reflection.learned) return;
+
+    y = pdfSectionBreak(doc, y, 40, margin, pageH);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+    doc.text(`Week ${w.weekNum}  (${fmtDate(new Date(w.start+'T00:00:00'))} – ${fmtDate(new Date(w.end+'T00:00:00'))})${w.cleared ? '  ✓ cleared' : ''}`, margin, y);
+    y += 18;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+
+    if(doneTasks.length === 0){
+      y = pdfSectionBreak(doc, y, lineH, margin, pageH);
+      doc.setTextColor(120); doc.text('No tasks completed yet.', margin + 10, y); doc.setTextColor(20);
+      y += lineH;
+    } else {
+      doneTasks.forEach(t => {
+        const label = `${fmtDate(new Date(t.date+'T00:00:00'))} · [${t.priority}]${t.time ? ' · ' + t.time : ''}`;
+        const lines = doc.splitTextToSize(`- ${t.text}   (${label})`, pageW - margin*2 - 10);
+        y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+        doc.text(lines, margin + 10, y);
+        y += lines.length * lineH;
+      });
+    }
+
+    if(w.reflection.did){
+      y = pdfSectionBreak(doc, y, 28, margin, pageH);
+      doc.setFont('helvetica', 'bold'); doc.text('What I did:', margin + 10, y); y += lineH;
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(w.reflection.did, pageW - margin*2 - 10);
+      y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+      doc.text(lines, margin + 10, y); y += lines.length * lineH + 4;
+    }
+    if(w.reflection.learned){
+      y = pdfSectionBreak(doc, y, 28, margin, pageH);
+      doc.setFont('helvetica', 'bold'); doc.text('What I learned:', margin + 10, y); y += lineH;
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(w.reflection.learned, pageW - margin*2 - 10);
+      y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+      doc.text(lines, margin + 10, y); y += lines.length * lineH + 4;
+    }
+    y += 10;
+  });
+
+  if(state.skills.length){
+    y = pdfSectionBreak(doc, y, 30, margin, pageH);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+    doc.text('Skill Journal', margin, y); y += 20;
+
+    state.skills.forEach(s => {
+      const tier = skillTierInfo(s.entries.length).title;
+      y = pdfSectionBreak(doc, y, 18, margin, pageH);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
+      doc.text(`${s.name}  —  ${tier}`, margin, y); y += 15;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      const entriesSorted = [...s.entries].sort((a,b)=> b.date.localeCompare(a.date));
+      if(entriesSorted.length === 0){
+        y = pdfSectionBreak(doc, y, lineH, margin, pageH);
+        doc.setTextColor(120); doc.text('No entries logged yet.', margin + 10, y); doc.setTextColor(20);
+        y += lineH;
+      } else {
+        entriesSorted.forEach(en => {
+          const lines = doc.splitTextToSize(`${fmtDate(new Date(en.date+'T00:00:00'))} — ${en.note}`, pageW - margin*2 - 10);
+          y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+          doc.text(lines, margin + 10, y);
+          y += lines.length * lineH;
+        });
+      }
+      y += 8;
+    });
+  }
+
+  doc.save(`internship-progress-report-${isoOf(new Date())}.pdf`);
+});
+
+function openShareLinkModal(link){
+  document.getElementById('shareLinkInput').value = link;
+  document.getElementById('shareLinkMsg').textContent = '';
+  document.getElementById('shareLinkModal').classList.add('show');
+}
+document.getElementById('shareLinkCloseBtn').addEventListener('click', () => {
+  document.getElementById('shareLinkModal').classList.remove('show');
+});
+document.getElementById('shareLinkCopyBtn').addEventListener('click', async () => {
+  const input = document.getElementById('shareLinkInput');
+  input.select();
+  try{
+    await navigator.clipboard.writeText(input.value);
+    document.getElementById('shareLinkMsg').textContent = 'Copied!';
+  } catch(e){
+    document.getElementById('shareLinkMsg').textContent = 'Select the text above and copy it manually.';
+  }
+});
+
+document.getElementById('publishBtn').addEventListener('click', async () => {
+  const { token } = getSyncConfig();
+  if(!token){
+    alert('This uses the same GitHub token as cross-device sync. Connect that first, then try "get share link" again.');
+    openSyncModal();
+    return;
+  }
+  try{
+    setSyncStatus('syncing');
+    const existingId = localStorage.getItem(REPORT_GIST_KEY) || '';
+    const snapshot = buildReportSnapshot();
+    const newId = await gistPushGeneric(token, existingId, REPORT_GIST_FILENAME, snapshot, true, 'Internship Quest — shared read-only report');
+    if(!existingId) localStorage.setItem(REPORT_GIST_KEY, newId);
+    setSyncStatus('ok');
+    const base = location.href.split('?')[0].replace(/[^/]*$/, '');
+    const link = base + 'report.html?gist=' + newId;
+    openShareLinkModal(link);
+  } catch(e){
+    console.error('Publish failed', e);
+    setSyncStatus('error');
+    alert('Publishing the share link failed: ' + e.message);
   }
 });
 
