@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
@@ -272,20 +271,6 @@
   @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
   .reset-link{ color: rgba(58,46,66,0.45); cursor:pointer; text-decoration:underline; }
 
-  .auth-gate{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background: rgba(58,46,66,0.15); backdrop-filter: blur(6px); }
-  .auth-gate.hide{ display:none; }
-  .auth-card{ width:100%; max-width:380px; padding:30px 28px; text-align:center; }
-  .auth-card .orb{ width:44px; height:44px; border-radius:50%; margin:0 auto 14px; background: linear-gradient(135deg, var(--rose), var(--amethyst)); box-shadow: 0 0 0 5px rgba(255,255,255,0.4); }
-  .auth-card h2{ font-family:'Quicksand'; font-weight:700; font-size:19px; margin:0 0 6px; }
-  .auth-card p{ font-family:'Inter'; font-size:12px; color: var(--ink-soft); margin:0 0 18px; }
-  .auth-card input{ width:100%; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.6); padding:10px 13px; font-family:'Inter'; font-size:13px; border-radius:10px; color: var(--ink); margin-bottom:10px; }
-  .auth-card input:focus{ outline:none; border-color: var(--amethyst); }
-  .auth-card .auth-row{ display:flex; gap:8px; margin-top:4px; }
-  .auth-card button{ flex:1; font-family:'Quicksand'; font-weight:700; font-size:13px; padding:10px; border-radius:10px; cursor:pointer; border:none; }
-  .auth-card .btn-primary{ background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; }
-  .auth-card .btn-ghost{ background: rgba(255,255,255,0.4); color: var(--ink); border:1px solid rgba(150,110,160,0.25); }
-  .auth-msg{ font-family:'JetBrains Mono'; font-size:11px; color: var(--coral-deep); margin-top:12px; min-height:14px; }
-
   .comment{ display:flex; gap:10px; padding:10px 4px; border-bottom:1px solid rgba(150,110,160,0.12); }
   .comment:last-child{ border-bottom:none; }
   .comment .cavatar{ width:26px; height:26px; border-radius:50%; flex-shrink:0; background: linear-gradient(135deg, var(--amber), var(--rose)); display:flex; align-items:center; justify-content:center; font-size:12px; }
@@ -306,21 +291,6 @@
 </style>
 </head>
 <body>
-
-<div class="auth-gate" id="authGate">
-  <div class="auth-card glass">
-    <div class="orb"></div>
-    <h2>Internship Quest</h2>
-    <p>Log in so your data follows you across every device — and so your shared report link stays live.</p>
-    <input type="email" id="authEmail" placeholder="Email">
-    <input type="password" id="authPassword" placeholder="Password (6+ characters)">
-    <div class="auth-row">
-      <button class="btn-primary" id="authLoginBtn">Log in</button>
-      <button class="btn-ghost" id="authSignupBtn">Sign up</button>
-    </div>
-    <div class="auth-msg" id="authMsg"></div>
-  </div>
-</div>
 
 <div class="app">
 
@@ -439,9 +409,9 @@
       <div class="footer-note">
         <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced live</span></span>
         · <span class="reset-link" id="publishBtn">get share link</span>
+        · <span class="reset-link" id="deviceLinkBtn">link another device</span>
         · <span class="reset-link" id="exportBtn">export backup</span>
         · <span class="reset-link" id="importBtn">import backup</span>
-        · <span class="reset-link" id="logoutBtn">log out</span>
         · <span class="reset-link" id="resetAll">reset all data</span>
         <input type="file" id="importFile" accept="application/json" style="display:none;">
       </div>
@@ -460,7 +430,7 @@
 <div class="modal-overlay" id="shareLinkModal">
   <div class="modal glass">
     <h3>Live share link</h3>
-    <p class="modal-p">Anyone with this link sees your progress <b>update in real time</b> — no refresh needed. They can add new tasks and leave comments, but can't check off, edit, or delete anything of yours. Only send it to people you trust with that.</p>
+    <p class="modal-p">Anyone with this link sees your progress <b>update in real time</b> — no refresh needed. They can add new tasks and leave comments, but can't check off, edit, or delete anything of yours. There's no login involved, so treat the link itself as the "password" — only send it directly to your supervisor.</p>
     <label class="modal-label">Share this link</label>
     <input type="text" id="shareLinkInput" class="modal-input" readonly>
     <div class="modal-row">
@@ -468,6 +438,23 @@
       <button class="modal-btn" id="shareLinkCloseBtn">Close</button>
     </div>
     <div class="modal-msg" id="shareLinkMsg"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deviceLinkModal">
+  <div class="modal glass">
+    <h3>Use on another device</h3>
+    <p class="modal-p">There's no login here — instead, this tracker is tied to a private <b>Tracker ID</b>. To see the same data on another phone or browser, copy this ID and paste it in on that device.</p>
+    <label class="modal-label">This tracker's ID</label>
+    <input type="text" id="myTrackerIdInput" class="modal-input" readonly>
+    <div class="modal-row"><button class="modal-btn primary" id="copyTrackerIdBtn">Copy ID</button></div>
+    <label class="modal-label" style="margin-top:16px;">Already have a Tracker ID from another device?</label>
+    <input type="text" id="linkTrackerIdInput" class="modal-input" placeholder="Paste an existing Tracker ID">
+    <div class="modal-row">
+      <button class="modal-btn primary" id="linkTrackerIdBtn">Switch to that tracker</button>
+      <button class="modal-btn" id="deviceLinkCloseBtn">Close</button>
+    </div>
+    <div class="modal-msg" id="deviceLinkMsg"></div>
   </div>
 </div>
 
@@ -535,12 +522,21 @@ const FIREBASE_CONFIG = {
 };
 
 firebase.initializeApp(FIREBASE_CONFIG);
-const auth = firebase.auth();
 const db = firebase.database();
 
 const LOCAL_CACHE_KEY = 'internship-quest-cache-v1';
+const TRACKER_ID_KEY = 'internship-quest-tracker-id';
 
-let currentUid = null;
+function getOrCreateTrackerId(){
+  let id = localStorage.getItem(TRACKER_ID_KEY);
+  if(!id){
+    id = 'trk-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+    localStorage.setItem(TRACKER_ID_KEY, id);
+  }
+  return id;
+}
+
+let trackerId = getOrCreateTrackerId();
 let supervisorTasks = {};
 let comments = {};
 let stateListenerRef = null;
@@ -573,11 +569,10 @@ function applyMigrations(){
   });
 }
 
-function attachListeners(uid){
-  currentUid = uid;
+function attachListeners(){
   detachListeners();
 
-  stateListenerRef = db.ref('users/' + uid + '/state');
+  stateListenerRef = db.ref('trackers/' + trackerId + '/state');
   stateListenerRef.on('value', (snap) => {
     const val = snap.val();
     if(val){
@@ -595,13 +590,13 @@ function attachListeners(uid){
     renderAll();
   }, (err) => { console.error('State listener error', err); setSyncStatus('error'); });
 
-  supTasksListenerRef = db.ref('users/' + uid + '/supervisorTasks');
+  supTasksListenerRef = db.ref('trackers/' + trackerId + '/supervisorTasks');
   supTasksListenerRef.on('value', (snap) => {
     supervisorTasks = snap.val() || {};
     if(state) { renderTasksView(); renderTopbar(); }
   });
 
-  commentsListenerRef = db.ref('users/' + uid + '/comments');
+  commentsListenerRef = db.ref('trackers/' + trackerId + '/comments');
   commentsListenerRef.on('value', (snap) => {
     comments = snap.val() || {};
     renderComments();
@@ -622,10 +617,9 @@ function ensureCurrentWeek(){
 }
 
 async function saveState(){
-  if(!currentUid) return;
   setSyncStatus('syncing');
   try{
-    await db.ref('users/' + currentUid + '/state').set(state);
+    await db.ref('trackers/' + trackerId + '/state').set(state);
     setSyncStatus('ok');
   } catch(e){
     console.error('Save failed', e);
@@ -830,12 +824,12 @@ function renderTasksView(){
     }
     supBox.addEventListener('click', (e) => {
       const id = e.target.dataset.id;
-      if(!id || !currentUid) return;
+      if(!id) return;
       if(e.target.classList.contains('del')){
-        db.ref('users/' + currentUid + '/supervisorTasks/' + id).remove();
+        db.ref('trackers/' + trackerId + '/supervisorTasks/' + id).remove();
       } else if(e.target.classList.contains('check') || e.target.classList.contains('txt')){
         const t = supervisorTasks[id];
-        if(t) db.ref('users/' + currentUid + '/supervisorTasks/' + id + '/done').set(!t.done);
+        if(t) db.ref('trackers/' + trackerId + '/supervisorTasks/' + id + '/done').set(!t.done);
       }
     });
 
@@ -1192,7 +1186,7 @@ document.getElementById('commentListBox').addEventListener('click', (e) => {
   const id = e.target.dataset.id;
   if(!id || !e.target.classList.contains('cdel')) return;
   if(!confirm('Delete this comment?')) return;
-  db.ref('users/' + currentUid + '/comments/' + id).remove();
+  db.ref('trackers/' + trackerId + '/comments/' + id).remove();
 });
 
 function openShareLinkModal(link){
@@ -1214,15 +1208,36 @@ document.getElementById('shareLinkCopyBtn').addEventListener('click', async () =
   }
 });
 document.getElementById('publishBtn').addEventListener('click', () => {
-  if(!currentUid) return;
   const base = location.href.split('?')[0].replace(/[^/]*$/, '');
-  const link = base + 'report.html?uid=' + currentUid;
+  const link = base + 'report.html?tracker=' + trackerId;
   openShareLinkModal(link);
 });
 
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  if(!confirm('Log out of this device?')) return;
-  auth.signOut();
+document.getElementById('deviceLinkBtn').addEventListener('click', () => {
+  document.getElementById('myTrackerIdInput').value = trackerId;
+  document.getElementById('linkTrackerIdInput').value = '';
+  document.getElementById('deviceLinkMsg').textContent = '';
+  document.getElementById('deviceLinkMsg').className = 'modal-msg';
+  document.getElementById('deviceLinkModal').classList.add('show');
+});
+document.getElementById('deviceLinkCloseBtn').addEventListener('click', () => {
+  document.getElementById('deviceLinkModal').classList.remove('show');
+});
+document.getElementById('copyTrackerIdBtn').addEventListener('click', async () => {
+  const input = document.getElementById('myTrackerIdInput');
+  input.select();
+  try{ await navigator.clipboard.writeText(input.value); document.getElementById('deviceLinkMsg').textContent = 'Copied!'; document.getElementById('deviceLinkMsg').className = 'modal-msg ok'; }
+  catch(e){ document.getElementById('deviceLinkMsg').textContent = 'Select the text above and copy it manually.'; }
+});
+document.getElementById('linkTrackerIdBtn').addEventListener('click', () => {
+  const newId = document.getElementById('linkTrackerIdInput').value.trim();
+  const msg = document.getElementById('deviceLinkMsg');
+  if(!newId){ msg.textContent = 'Paste a Tracker ID first.'; msg.className = 'modal-msg err'; return; }
+  if(!confirm('Switch this device to Tracker ID "' + newId + '"? This device will now show that tracker\'s data instead.')) return;
+  trackerId = newId;
+  localStorage.setItem(TRACKER_ID_KEY, trackerId);
+  document.getElementById('deviceLinkModal').classList.remove('show');
+  attachListeners();
 });
 
 function spawnBubbles(){
@@ -1240,37 +1255,8 @@ function spawnBubbles(){
   });
 }
 
-function showAuthMsg(msg){ document.getElementById('authMsg').textContent = msg || ''; }
-
-document.getElementById('authLoginBtn').addEventListener('click', async () => {
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  if(!email || !password){ showAuthMsg('Enter your email and password.'); return; }
-  showAuthMsg('Logging in…');
-  try{ await auth.signInWithEmailAndPassword(email, password); }
-  catch(e){ showAuthMsg(e.message); }
-});
-document.getElementById('authSignupBtn').addEventListener('click', async () => {
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  if(!email || !password){ showAuthMsg('Enter an email and a password (6+ characters).'); return; }
-  showAuthMsg('Creating your account…');
-  try{ await auth.createUserWithEmailAndPassword(email, password); }
-  catch(e){ showAuthMsg(e.message); }
-});
-
-auth.onAuthStateChanged((user) => {
-  const gate = document.getElementById('authGate');
-  if(user){
-    gate.classList.add('hide');
-    attachListeners(user.uid);
-  } else {
-    gate.classList.remove('hide');
-    detachListeners();
-  }
-});
-
 spawnBubbles();
+attachListeners();
 </script>
 </body>
 </html>
