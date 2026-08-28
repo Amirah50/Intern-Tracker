@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Internship Progress — Shared View</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rose:#ECA6C4; --amethyst:#A98BDB; --amethyst-deep:#8467C2;
+    --amber:#EFC07E; --amber-deep:#D99A3E; --mint:#8FDCC4; --mint-deep:#5CBE9E;
+    --coral-deep:#CC6650; --ink:#3A2E42; --ink-soft:#7A6D85;
+    --glass: rgba(255,255,255,0.32); --glass-border: rgba(255,255,255,0.55); --radius:20px;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:'Inter', sans-serif; color: var(--ink); min-height:100vh;
+    background:
+      radial-gradient(circle at 8% 12%, rgba(236,166,196,0.5), transparent 40%),
+      radial-gradient(circle at 92% 8%, rgba(169,139,219,0.45), transparent 42%),
+      radial-gradient(circle at 15% 85%, rgba(143,220,196,0.38), transparent 40%),
+      linear-gradient(160deg, #F7E4DE 0%, #EDD9EE 35%, #DCE0EF 65%, #E8ECE4 100%);
+    background-attachment: fixed;
+  }
+  .glass{ background: var(--glass); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); border:1px solid var(--glass-border); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(80,50,90,0.12); }
+  .wrap{ max-width: 760px; margin: 0 auto; padding: 30px 22px 60px; }
+  .banner{ padding:10px 16px; border-radius:12px; background: rgba(217,154,62,0.18); border:1px solid rgba(217,154,62,0.3); font-family:'JetBrains Mono'; font-size:11px; color: var(--amber-deep); margin-bottom:18px; text-align:center; }
+  .head{ padding:22px 26px; margin-bottom:18px; }
+  .head h1{ font-family:'Quicksand'; font-weight:700; font-size:22px; margin:0 0 4px; }
+  .head .sub{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
+  .stats{ display:flex; gap:14px; margin-top:14px; flex-wrap:wrap; }
+  .stat{ background: rgba(255,255,255,0.4); border-radius:12px; padding:8px 14px; font-family:'Quicksand'; font-weight:700; font-size:13px; }
+  .stat span{ display:block; font-family:'JetBrains Mono'; font-weight:400; font-size:9.5px; color: var(--ink-soft); margin-top:2px; }
+
+  .week-card{ padding:18px 22px; margin-bottom:14px; }
+  .week-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px; }
+  .week-head h2{ font-family:'Quicksand'; font-weight:700; font-size:15.5px; margin:0; }
+  .week-head .range{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); }
+  .cleared-pill{ font-family:'Quicksand'; font-weight:700; font-size:10.5px; color:#fff; background: linear-gradient(135deg, var(--mint-deep), var(--mint)); padding:4px 10px; border-radius:20px; }
+
+  .day-block{ margin-bottom:8px; }
+  .day-block h4{ font-family:'Quicksand'; font-weight:600; font-size:11.5px; color: var(--ink-soft); margin:0 0 4px; }
+  .task-row{ display:flex; align-items:center; gap:8px; padding:4px 2px; font-size:12.5px; }
+  .task-row.done{ color: var(--ink-soft); text-decoration: line-through; }
+  .task-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .dot-high{ background: var(--coral-deep); } .dot-medium{ background: var(--amber-deep); } .dot-low{ background: var(--mint-deep); }
+  .task-time{ font-family:'JetBrains Mono'; font-size:9.5px; color: var(--ink-soft); }
+
+  .reflect{ margin-top:12px; padding-top:12px; border-top:1px solid rgba(150,110,160,0.15); }
+  .reflect .rlabel{ font-family:'Quicksand'; font-weight:700; font-size:11.5px; margin-bottom:3px; }
+  .reflect p{ font-size:12.5px; margin:0 0 10px; white-space:pre-wrap; }
+
+  .skill-card{ padding:14px 18px; margin-bottom:10px; }
+  .skill-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .skill-top .n{ font-family:'Quicksand'; font-weight:700; font-size:13.5px; }
+  .skill-top .t{ font-family:'JetBrains Mono'; font-size:9.5px; background: rgba(169,139,219,0.25); color: var(--amethyst-deep); padding:3px 9px; border-radius:20px; text-transform:uppercase; }
+  .skill-entry{ font-size:11.5px; padding:4px 0; border-bottom:1px solid rgba(150,110,160,0.1); }
+  .skill-entry:last-child{ border-bottom:none; }
+  .skill-entry b{ font-family:'JetBrains Mono'; font-weight:600; font-size:9.5px; color: var(--ink-soft); margin-right:6px; }
+
+  .empty, .loading{ font-family:'JetBrains Mono'; font-size:12px; color: var(--ink-soft); text-align:center; padding:40px 10px; }
+  .footer{ text-align:center; font-family:'JetBrains Mono'; font-size:10px; color: rgba(58,46,66,0.4); margin-top:20px; }
+  @media print{ .banner{ display:none; } body{ background: white; } .glass{ backdrop-filter:none; background: white; box-shadow:none; border:1px solid #ddd; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">👁 View-only shared report — nothing here can be edited</div>
+  <div id="content"><div class="loading">Loading progress report…</div></div>
+  <div class="footer" id="footerNote" style="display:none;">Generated with Internship Quest</div>
+</div>
+<script>
+function fmtDate(iso){ const d = new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+function fmtDateFull(iso){ const d = new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+async function load(){
+  const params = new URLSearchParams(location.search);
+  const gistId = params.get('gist');
+  const content = document.getElementById('content');
+  if(!gistId){
+    content.innerHTML = '<div class="empty">No report specified. Ask for a link that includes ?gist=…</div>';
+    return;
+  }
+  try{
+    const res = await fetch('https://api.github.com/gists/' + gistId);
+    if(!res.ok) throw new Error('Could not load report (' + res.status + ')');
+    const data = await res.json();
+    const file = Object.values(data.files || {})[0];
+    if(!file || !file.content) throw new Error('Report file not found in that gist');
+    const report = JSON.parse(file.content);
+    render(report);
+  } catch(e){
+    content.innerHTML = '<div class="empty">This report could not be loaded. It may have been unpublished, or the link is incorrect.</div>';
+    console.error(e);
+  }
+}
+
+function render(r){
+  const content = document.getElementById('content');
+  let html = `
+    <div class="head glass">
+      <h1>Internship Progress</h1>
+      <div class="sub">Last updated ${new Date(r.generatedAt).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+      <div class="stats">
+        <div class="stat">Level ${r.level}<span>${escapeHtml(r.rank || '')}</span></div>
+        <div class="stat">${r.xp} XP<span>total earned</span></div>
+        <div class="stat">${r.streak}<span>week streak</span></div>
+      </div>
+    </div>
+  `;
+
+  (r.weeks || []).forEach(w => {
+    const allTasks = (w.days || []).flatMap(d => (d.tasks || []).map(t => ({ ...t, date: d.date })));
+    if(allTasks.length === 0 && !(w.reflection && (w.reflection.did || w.reflection.learned))) return;
+    html += `<div class="week-card glass">
+      <div class="week-head">
+        <div><h2>Week ${w.weekNum}</h2><div class="range">${fmtDateFull(w.start)} – ${fmtDateFull(w.end)}</div></div>
+        ${w.cleared ? '<span class="cleared-pill">Cleared ✓</span>' : ''}
+      </div>`;
+
+    (w.days || []).forEach(d => {
+      if(!d.tasks || d.tasks.length === 0) return;
+      html += `<div class="day-block"><h4>${fmtDate(d.date)}</h4>`;
+      d.tasks.forEach(t => {
+        html += `<div class="task-row${t.done ? ' done' : ''}">
+          <span class="task-dot dot-${t.priority}"></span>
+          <span>${escapeHtml(t.text)}</span>
+          ${t.time ? `<span class="task-time">${t.time}</span>` : ''}
+        </div>`;
+      });
+      html += `</div>`;
+    });
+
+    if(w.reflection && (w.reflection.did || w.reflection.learned)){
+      html += `<div class="reflect">`;
+      if(w.reflection.did) html += `<div class="rlabel">📝 What I did</div><p>${escapeHtml(w.reflection.did)}</p>`;
+      if(w.reflection.learned) html += `<div class="rlabel">💡 What I learned</div><p>${escapeHtml(w.reflection.learned)}</p>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
+
+  if((r.skills || []).length){
+    html += `<div class="week-card glass"><div class="week-head"><h2>Skill Journal</h2></div>`;
+    r.skills.forEach(s => {
+      html += `<div class="skill-card glass">
+        <div class="skill-top"><span class="n">${escapeHtml(s.name)}</span><span class="t">${escapeHtml(s.tier)}</span></div>`;
+      if(!s.entries || s.entries.length === 0){
+        html += `<div class="skill-entry" style="opacity:0.6;">No entries logged yet.</div>`;
+      } else {
+        s.entries.forEach(en => {
+          html += `<div class="skill-entry"><b>${fmtDate(en.date)}</b>${escapeHtml(en.note)}</div>`;
+        });
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  content.innerHTML = html;
+  document.getElementById('footerNote').style.display = 'block';
+}
+
+load();
+</script>
+</body>
+</html>
