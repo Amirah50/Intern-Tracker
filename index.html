@@ -6,7 +6,9 @@
 <title>Internship Quest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --rose: #ECA6C4; --rose-deep: #D9769E;
@@ -270,6 +272,30 @@
   @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
   .reset-link{ color: rgba(58,46,66,0.45); cursor:pointer; text-decoration:underline; }
 
+  .auth-gate{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background: rgba(58,46,66,0.15); backdrop-filter: blur(6px); }
+  .auth-gate.hide{ display:none; }
+  .auth-card{ width:100%; max-width:380px; padding:30px 28px; text-align:center; }
+  .auth-card .orb{ width:44px; height:44px; border-radius:50%; margin:0 auto 14px; background: linear-gradient(135deg, var(--rose), var(--amethyst)); box-shadow: 0 0 0 5px rgba(255,255,255,0.4); }
+  .auth-card h2{ font-family:'Quicksand'; font-weight:700; font-size:19px; margin:0 0 6px; }
+  .auth-card p{ font-family:'Inter'; font-size:12px; color: var(--ink-soft); margin:0 0 18px; }
+  .auth-card input{ width:100%; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.6); padding:10px 13px; font-family:'Inter'; font-size:13px; border-radius:10px; color: var(--ink); margin-bottom:10px; }
+  .auth-card input:focus{ outline:none; border-color: var(--amethyst); }
+  .auth-card .auth-row{ display:flex; gap:8px; margin-top:4px; }
+  .auth-card button{ flex:1; font-family:'Quicksand'; font-weight:700; font-size:13px; padding:10px; border-radius:10px; cursor:pointer; border:none; }
+  .auth-card .btn-primary{ background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; }
+  .auth-card .btn-ghost{ background: rgba(255,255,255,0.4); color: var(--ink); border:1px solid rgba(150,110,160,0.25); }
+  .auth-msg{ font-family:'JetBrains Mono'; font-size:11px; color: var(--coral-deep); margin-top:12px; min-height:14px; }
+
+  .comment{ display:flex; gap:10px; padding:10px 4px; border-bottom:1px solid rgba(150,110,160,0.12); }
+  .comment:last-child{ border-bottom:none; }
+  .comment .cavatar{ width:26px; height:26px; border-radius:50%; flex-shrink:0; background: linear-gradient(135deg, var(--amber), var(--rose)); display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .comment .cbody{ flex:1; min-width:0; }
+  .comment .cmeta{ font-family:'JetBrains Mono'; font-size:9.5px; color: var(--ink-soft); margin-bottom:2px; }
+  .comment .ctext{ font-size:12.5px; white-space:pre-wrap; }
+  .comment .cdel{ background:none; border:none; color: var(--rose-deep); font-size:15px; opacity:0.4; cursor:pointer; flex-shrink:0; }
+  .comment .cdel:hover{ opacity:1; }
+  .sup-tag{ font-family:'JetBrains Mono'; font-size:8px; padding:2px 6px; border-radius:10px; background: rgba(217,154,62,0.3); color: var(--amber-deep); text-transform:uppercase; }
+
   @media (max-width: 900px){
     .layout{ flex-direction:column; }
     .week-rail{ width:100%; max-height:none; }
@@ -280,6 +306,21 @@
 </style>
 </head>
 <body>
+
+<div class="auth-gate" id="authGate">
+  <div class="auth-card glass">
+    <div class="orb"></div>
+    <h2>Internship Quest</h2>
+    <p>Log in so your data follows you across every device — and so your shared report link stays live.</p>
+    <input type="email" id="authEmail" placeholder="Email">
+    <input type="password" id="authPassword" placeholder="Password (6+ characters)">
+    <div class="auth-row">
+      <button class="btn-primary" id="authLoginBtn">Log in</button>
+      <button class="btn-ghost" id="authSignupBtn">Sign up</button>
+    </div>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
 
 <div class="app">
 
@@ -371,6 +412,11 @@
             </div>
           </div>
         </div>
+
+        <div class="card glass" style="margin-top:16px;">
+          <div class="card-head"><h3>💬 Supervisor comments</h3><span class="count" id="commentCount">0</span></div>
+          <div id="commentListBox"></div>
+        </div>
       </section>
 
       <section class="view" id="view-skills">
@@ -391,12 +437,11 @@
       </section>
 
       <div class="footer-note">
-        <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced to your account</span></span>
-        · <span class="reset-link" id="syncSetupLink" style="display:none;">set up cross-device sync</span>
-        · <span class="reset-link" id="pdfBtn">export PDF report</span>
+        <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced live</span></span>
         · <span class="reset-link" id="publishBtn">get share link</span>
         · <span class="reset-link" id="exportBtn">export backup</span>
         · <span class="reset-link" id="importBtn">import backup</span>
+        · <span class="reset-link" id="logoutBtn">log out</span>
         · <span class="reset-link" id="resetAll">reset all data</span>
         <input type="file" id="importFile" accept="application/json" style="display:none;">
       </div>
@@ -414,8 +459,8 @@
 
 <div class="modal-overlay" id="shareLinkModal">
   <div class="modal glass">
-    <h3>View-only share link</h3>
-    <p class="modal-p">Anyone with this link can <b>view</b> your progress — they can't edit anything. It reads from a <b>public</b> GitHub Gist, so treat the link like an unlisted document: don't post it anywhere public, only send it directly to your supervisor.</p>
+    <h3>Live share link</h3>
+    <p class="modal-p">Anyone with this link sees your progress <b>update in real time</b> — no refresh needed. They can add new tasks and leave comments, but can't check off, edit, or delete anything of yours. Only send it to people you trust with that.</p>
     <label class="modal-label">Share this link</label>
     <input type="text" id="shareLinkInput" class="modal-input" readonly>
     <div class="modal-row">
@@ -423,28 +468,6 @@
       <button class="modal-btn" id="shareLinkCloseBtn">Close</button>
     </div>
     <div class="modal-msg" id="shareLinkMsg"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="syncModal">
-  <div class="modal glass">
-    <h3>Cross-device sync</h3>
-    <p class="modal-p">This page is running outside Claude, so it saves to a private <b>GitHub Gist</b> on your own account instead — no third-party service needed.</p>
-    <ol class="modal-steps">
-      <li>Create a token at <a href="https://github.com/settings/tokens/new?scopes=gist&description=Internship%20Quest%20Sync" target="_blank" rel="noopener">github.com/settings/tokens</a> with just the <b>gist</b> scope checked.</li>
-      <li>Paste it below and hit Connect. On your first device this creates a private gist; copy the Gist ID it gives you.</li>
-      <li>On every other device, paste the <b>same token</b> and that <b>same Gist ID</b> before connecting, so they all point at one place.</li>
-    </ol>
-    <label class="modal-label">Personal access token</label>
-    <input type="password" id="syncTokenInput" class="modal-input" placeholder="ghp_…">
-    <label class="modal-label">Gist ID <span style="opacity:0.6; font-weight:400;">(leave blank on your first device)</span></label>
-    <input type="text" id="syncGistInput" class="modal-input" placeholder="e.g. a1b2c3d4e5f6…">
-    <div class="modal-row">
-      <button class="modal-btn primary" id="syncConnectBtn">Connect</button>
-      <button class="modal-btn" id="syncDisconnectBtn">Disconnect</button>
-      <button class="modal-btn" id="syncCloseBtn">Close</button>
-    </div>
-    <div class="modal-msg" id="syncModalMsg"></div>
   </div>
 </div>
 
@@ -501,168 +524,46 @@ function defaultState(){
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
-const USING_CLAUDE_STORAGE = (typeof window.storage !== 'undefined' && window.storage !== null);
+// ===== Firebase setup =====
+// Fill in your own Firebase project's config here (Project settings > General > Your apps > Web app).
+// These values are safe to expose publicly — real security lives in the Database Rules below.
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT"
+};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.database();
+
 const LOCAL_CACHE_KEY = 'internship-quest-cache-v1';
-const SYNC_TOKEN_KEY = 'internship-quest-sync-token';
-const SYNC_GIST_KEY = 'internship-quest-sync-gist';
-const GIST_FILENAME = 'internship-quest-data.json';
+
+let currentUid = null;
+let supervisorTasks = {};
+let comments = {};
+let stateListenerRef = null;
+let supTasksListenerRef = null;
+let commentsListenerRef = null;
 
 function setSyncStatus(mode){
   const dot = document.getElementById('syncDot');
   const text = document.getElementById('syncText');
   if(!dot || !text) return;
-  const classes = { syncing:'syncing', error:'error', local:'local' };
+  const classes = { syncing:'syncing', error:'error' };
   dot.className = 'sync-dot' + (classes[mode] ? ' ' + classes[mode] : '');
-  const labels = {
-    syncing: 'Saving…',
-    error: 'Not synced — retrying…',
-    local: 'Saved on this device only',
-    ok: USING_CLAUDE_STORAGE ? 'Synced to your account' : 'Synced across your devices'
-  };
+  const labels = { syncing:'Saving…', error:'Connection issue — retrying…', ok:'Synced live' };
   text.textContent = labels[mode] || labels.ok;
 }
 
-async function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-
-// Retries a storage call a few times before giving up, so a brief network
-// hiccup never gets treated the same as "no data has ever been saved".
-async function withRetry(fn, attempts = 4){
-  let lastErr;
-  for(let i=0;i<attempts;i++){
-    try{ return await fn(); }
-    catch(e){ lastErr = e; if(i < attempts-1) await sleep(350 * (i+1)); }
-  }
-  throw lastErr;
-}
-
-function getSyncConfig(){
-  return { token: localStorage.getItem(SYNC_TOKEN_KEY) || '', gistId: localStorage.getItem(SYNC_GIST_KEY) || '' };
-}
-function setSyncConfig(token, gistId){
-  if(token) localStorage.setItem(SYNC_TOKEN_KEY, token); else localStorage.removeItem(SYNC_TOKEN_KEY);
-  if(gistId) localStorage.setItem(SYNC_GIST_KEY, gistId); else localStorage.removeItem(SYNC_GIST_KEY);
-}
 function getLocalCache(){
   try{ const raw = localStorage.getItem(LOCAL_CACHE_KEY); return raw ? JSON.parse(raw) : null; }
   catch(e){ return null; }
 }
-function setLocalCache(obj){
-  try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(obj)); } catch(e){ console.warn('localStorage write failed', e); }
-}
-
-const REPORT_GIST_KEY = 'internship-quest-report-gist';
-const REPORT_GIST_FILENAME = 'internship-quest-report.json';
-
-async function gistPushGeneric(token, gistId, filename, obj, isPublic, description){
-  const body = { files: {} };
-  body.files[filename] = { content: JSON.stringify(obj, null, 2) };
-  let url = 'https://api.github.com/gists';
-  let method = 'POST';
-  if(gistId){ url += '/' + gistId; method = 'PATCH'; }
-  else { body.description = description || 'Internship Quest data'; body.public = !!isPublic; }
-  const res = await fetch(url, {
-    method,
-    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if(!res.ok) throw new Error('Gist write failed (' + res.status + ')');
-  const data = await res.json();
-  return data.id;
-}
-
-function buildReportSnapshot(){
-  const xp = computeXP();
-  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
-  return {
-    generatedAt: new Date().toISOString(),
-    xp, level, rank: rankForLevel(level), streak: computeStreak(),
-    weeks: state.weeks.map(w => ({
-      weekNum: w.weekNum, start: w.start, end: w.end, cleared: w.cleared,
-      days: w.days.map(d => ({
-        date: d.date,
-        tasks: d.tasks.map(t => ({ text: t.text, priority: t.priority, time: t.time, done: t.done }))
-      })),
-      reflection: w.reflection
-    })),
-    skills: state.skills.map(s => ({
-      name: s.name,
-      tier: skillTierInfo(s.entries.length).title,
-      entries: [...s.entries].sort((a,b)=> b.date.localeCompare(a.date)).map(e => ({ date: e.date, note: e.note }))
-    }))
-  };
-}
-
-async function gistPull(token, gistId){
-  const res = await fetch('https://api.github.com/gists/' + gistId, {
-    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
-  });
-  if(!res.ok) throw new Error('Gist read failed (' + res.status + ')');
-  const data = await res.json();
-  const file = data.files && data.files[GIST_FILENAME];
-  if(!file || !file.content) throw new Error('No tracker data in that gist yet');
-  return JSON.parse(file.content);
-}
-async function gistPush(token, gistId, obj){
-  const body = { files: {} };
-  body.files[GIST_FILENAME] = { content: JSON.stringify(obj, null, 2) };
-  let url = 'https://api.github.com/gists';
-  let method = 'POST';
-  if(gistId){ url += '/' + gistId; method = 'PATCH'; }
-  else { body.description = 'Internship Quest tracker data'; body.public = false; }
-  const res = await fetch(url, {
-    method,
-    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if(!res.ok) throw new Error('Gist write failed (' + res.status + ')');
-  const data = await res.json();
-  return data.id;
-}
-
-async function loadState(){
-  let loadedExisting = false;
-
-  if(USING_CLAUDE_STORAGE){
-    try{
-      const res = await withRetry(() => window.storage.get(STORAGE_KEY, false));
-      if(res && res.value){ state = JSON.parse(res.value); loadedExisting = true; }
-    } catch(e){
-      // Genuinely no data yet, or the read failed even after retries — either way,
-      // do not write a blank state over anything that might already exist.
-      console.warn('No existing data found, or read failed after retries:', e);
-    }
-  } else {
-    // Deployed outside Claude: start from whatever is cached in this browser,
-    // then try to pull the authoritative copy from the linked GitHub Gist.
-    const cached = getLocalCache();
-    if(cached){ state = cached; loadedExisting = true; }
-    const { token, gistId } = getSyncConfig();
-    if(token && gistId){
-      try{
-        setSyncStatus('syncing');
-        const remote = await withRetry(() => gistPull(token, gistId));
-        state = remote;
-        loadedExisting = true;
-        setLocalCache(state);
-        setSyncStatus('ok');
-      } catch(e){
-        console.warn('Cloud sync pull failed, using this device local copy instead:', e);
-        setSyncStatus('error');
-      }
-    }
-  }
-
-  if(!loadedExisting) state = defaultState();
-
-  applyMigrations();
-
-  // Only write back automatically when we're touching real, previously-saved
-  // data (to persist the date fix) or a fresh brand-new tracker. A failed read
-  // is left untouched so a later successful load can't be clobbered.
-  if(loadedExisting) await saveState();
-}
 
 function applyMigrations(){
+  if(!Array.isArray(state.skills)) state.skills = [];
   state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
   state.weeks.forEach(w => {
     const startD = addDays(START_ISO, (w.weekNum - START_WEEK_NUM) * 7);
@@ -672,31 +573,62 @@ function applyMigrations(){
   });
 }
 
-async function saveState(){
-  if(USING_CLAUDE_STORAGE){
-    setSyncStatus('syncing');
-    try{
-      await withRetry(() => window.storage.set(STORAGE_KEY, JSON.stringify(state), false));
-      setSyncStatus('ok');
-    } catch(e){
-      console.error('Save failed after retries', e);
-      setSyncStatus('error');
-    }
-    return;
-  }
+function attachListeners(uid){
+  currentUid = uid;
+  detachListeners();
 
-  // Deployed outside Claude: always cache locally first (instant, never fails),
-  // then push to the linked GitHub Gist if cross-device sync is configured.
-  setLocalCache(state);
-  const { token, gistId } = getSyncConfig();
-  if(!token){ setSyncStatus('local'); return; }
+  stateListenerRef = db.ref('users/' + uid + '/state');
+  stateListenerRef.on('value', (snap) => {
+    const val = snap.val();
+    if(val){
+      state = val;
+      applyMigrations();
+    } else {
+      // Nothing saved on Firebase yet — bring over anything sitting in this
+      // browser's old local cache (from before live sync), else start fresh.
+      const cached = getLocalCache();
+      state = cached || defaultState();
+      applyMigrations();
+      stateListenerRef.set(state);
+    }
+    ensureCurrentWeek();
+    renderAll();
+  }, (err) => { console.error('State listener error', err); setSyncStatus('error'); });
+
+  supTasksListenerRef = db.ref('users/' + uid + '/supervisorTasks');
+  supTasksListenerRef.on('value', (snap) => {
+    supervisorTasks = snap.val() || {};
+    if(state) { renderTasksView(); renderTopbar(); }
+  });
+
+  commentsListenerRef = db.ref('users/' + uid + '/comments');
+  commentsListenerRef.on('value', (snap) => {
+    comments = snap.val() || {};
+    renderComments();
+  });
+}
+
+function detachListeners(){
+  if(stateListenerRef) stateListenerRef.off();
+  if(supTasksListenerRef) supTasksListenerRef.off();
+  if(commentsListenerRef) commentsListenerRef.off();
+}
+
+function ensureCurrentWeek(){
+  if(currentWeekId && state.weeks.some(w => w.id === currentWeekId)) return;
+  const today = isoOf(new Date());
+  const match = state.weeks.find(w => today >= w.start && today <= w.end);
+  currentWeekId = (match || state.weeks[0]).id;
+}
+
+async function saveState(){
+  if(!currentUid) return;
   setSyncStatus('syncing');
   try{
-    const newId = await withRetry(() => gistPush(token, gistId, state));
-    if(!gistId) setSyncConfig(token, newId);
+    await db.ref('users/' + currentUid + '/state').set(state);
     setSyncStatus('ok');
   } catch(e){
-    console.error('Cloud sync push failed after retries', e);
+    console.error('Save failed', e);
     setSyncStatus('error');
   }
 }
@@ -717,6 +649,7 @@ function computeXP(){
     if(w.cleared) xp += WEEK_CLEAR_BONUS;
   });
   state.skills.forEach(s => { xp += s.entries.length * XP_PER_ENTRY; });
+  xp += Object.values(supervisorTasks || {}).filter(t => t.done).length * XP_PER_TASK;
   return xp;
 }
 function computeStreak(){
@@ -817,7 +750,11 @@ function renderTasksView(){
   grid.innerHTML = '';
   w.days.forEach((day, dIdx) => {
     const dDate = new Date(day.date+'T00:00:00');
-    const dTotal = day.tasks.length, dDone = day.tasks.filter(t=>t.done).length;
+    const supForDay = Object.entries(supervisorTasks || {})
+      .filter(([id, t]) => t.date === day.date)
+      .map(([id, t]) => ({ id, ...t }));
+    const dTotal = day.tasks.length + supForDay.length;
+    const dDone = day.tasks.filter(t=>t.done).length + supForDay.filter(t=>t.done).length;
     const dPct = dTotal ? Math.round((dDone/dTotal)*100) : 0;
     const circ = 60.3;
     const off = circ - (circ*dPct/100);
@@ -847,6 +784,7 @@ function renderTasksView(){
         </div>
       </div>
       <div class="task-list"></div>
+      <div class="sup-task-list"></div>
     `;
     const listBox = card.querySelector('.task-list');
     if(day.tasks.length === 0){
@@ -870,6 +808,36 @@ function renderTasksView(){
         listBox.appendChild(row);
       });
     }
+
+    const supBox = card.querySelector('.sup-task-list');
+    if(supForDay.length){
+      supForDay.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'mini-task' + (t.done?' done':'');
+        row.innerHTML = `
+          <span class="check" data-id="${t.id}"></span>
+          <div class="body">
+            <span class="txt" data-id="${t.id}">${escapeHtml(t.text)}</span>
+            <div class="meta">
+              <span class="pri-tag pri-${t.priority || 'medium'}">${t.priority || 'medium'}</span>
+              ${t.time ? `<span class="time-tag">${t.time}</span>` : ''}
+              <span class="sup-tag">👤 supervisor</span>
+            </div>
+          </div>
+          <button class="del" data-id="${t.id}">×</button>`;
+        supBox.appendChild(row);
+      });
+    }
+    supBox.addEventListener('click', (e) => {
+      const id = e.target.dataset.id;
+      if(!id || !currentUid) return;
+      if(e.target.classList.contains('del')){
+        db.ref('users/' + currentUid + '/supervisorTasks/' + id).remove();
+      } else if(e.target.classList.contains('check') || e.target.classList.contains('txt')){
+        const t = supervisorTasks[id];
+        if(t) db.ref('users/' + currentUid + '/supervisorTasks/' + id + '/done').set(!t.done);
+      }
+    });
 
     card.querySelector('.ti-add').addEventListener('click', async () => {
       const textInput = card.querySelector('.ti-text');
@@ -1198,103 +1166,33 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   }
 });
 
-function pdfSectionBreak(doc, y, needed, margin, pageH){
-  if(y + needed > pageH - margin){ doc.addPage(); return margin; }
-  return y;
-}
+function escapeAttr(str){ return String(str).replace(/'/g, "&#39;"); }
 
-document.getElementById('pdfBtn').addEventListener('click', () => {
-  if(!window.jspdf){ alert('PDF library failed to load — check your connection and try again.'); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-  const margin = 44, pageW = 595.28, pageH = 841.89, lineH = 14;
-  let y = margin;
-
-  const xp = computeXP();
-  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
-
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-  doc.text('Internship Progress Report', margin, y); y += 22;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
-  doc.text('Generated ' + new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }), margin, y); y += 14;
-  doc.text(`Level ${level} · ${rankForLevel(level)} · ${computeStreak()} week streak`, margin, y); y += 24;
-  doc.setTextColor(20);
-
-  state.weeks.forEach(w => {
-    const doneTasks = [];
-    w.days.forEach(day => {
-      day.tasks.filter(t => t.done).forEach(t => doneTasks.push({ date: day.date, ...t }));
-    });
-    if(doneTasks.length === 0 && !w.reflection.did && !w.reflection.learned) return;
-
-    y = pdfSectionBreak(doc, y, 40, margin, pageH);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
-    doc.text(`Week ${w.weekNum}  (${fmtDate(new Date(w.start+'T00:00:00'))} – ${fmtDate(new Date(w.end+'T00:00:00'))})${w.cleared ? '  ✓ cleared' : ''}`, margin, y);
-    y += 18;
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
-
-    if(doneTasks.length === 0){
-      y = pdfSectionBreak(doc, y, lineH, margin, pageH);
-      doc.setTextColor(120); doc.text('No tasks completed yet.', margin + 10, y); doc.setTextColor(20);
-      y += lineH;
-    } else {
-      doneTasks.forEach(t => {
-        const label = `${fmtDate(new Date(t.date+'T00:00:00'))} · [${t.priority}]${t.time ? ' · ' + t.time : ''}`;
-        const lines = doc.splitTextToSize(`- ${t.text}   (${label})`, pageW - margin*2 - 10);
-        y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
-        doc.text(lines, margin + 10, y);
-        y += lines.length * lineH;
-      });
-    }
-
-    if(w.reflection.did){
-      y = pdfSectionBreak(doc, y, 28, margin, pageH);
-      doc.setFont('helvetica', 'bold'); doc.text('What I did:', margin + 10, y); y += lineH;
-      doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(w.reflection.did, pageW - margin*2 - 10);
-      y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
-      doc.text(lines, margin + 10, y); y += lines.length * lineH + 4;
-    }
-    if(w.reflection.learned){
-      y = pdfSectionBreak(doc, y, 28, margin, pageH);
-      doc.setFont('helvetica', 'bold'); doc.text('What I learned:', margin + 10, y); y += lineH;
-      doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(w.reflection.learned, pageW - margin*2 - 10);
-      y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
-      doc.text(lines, margin + 10, y); y += lines.length * lineH + 4;
-    }
-    y += 10;
-  });
-
-  if(state.skills.length){
-    y = pdfSectionBreak(doc, y, 30, margin, pageH);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-    doc.text('Skill Journal', margin, y); y += 20;
-
-    state.skills.forEach(s => {
-      const tier = skillTierInfo(s.entries.length).title;
-      y = pdfSectionBreak(doc, y, 18, margin, pageH);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
-      doc.text(`${s.name}  —  ${tier}`, margin, y); y += 15;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-      const entriesSorted = [...s.entries].sort((a,b)=> b.date.localeCompare(a.date));
-      if(entriesSorted.length === 0){
-        y = pdfSectionBreak(doc, y, lineH, margin, pageH);
-        doc.setTextColor(120); doc.text('No entries logged yet.', margin + 10, y); doc.setTextColor(20);
-        y += lineH;
-      } else {
-        entriesSorted.forEach(en => {
-          const lines = doc.splitTextToSize(`${fmtDate(new Date(en.date+'T00:00:00'))} — ${en.note}`, pageW - margin*2 - 10);
-          y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
-          doc.text(lines, margin + 10, y);
-          y += lines.length * lineH;
-        });
-      }
-      y += 8;
-    });
+function renderComments(){
+  const box = document.getElementById('commentListBox');
+  const list = Object.entries(comments || {}).map(([id, c]) => ({ id, ...c }));
+  list.sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
+  document.getElementById('commentCount').textContent = list.length;
+  if(list.length === 0){
+    box.innerHTML = '<div class="empty">No comments yet. Your supervisor can leave one from the shared link.</div>';
+    return;
   }
-
-  doc.save(`internship-progress-report-${isoOf(new Date())}.pdf`);
+  box.innerHTML = list.map(c => `
+    <div class="comment">
+      <div class="cavatar">👤</div>
+      <div class="cbody">
+        <div class="cmeta">${c.weekNum ? 'On Week ' + c.weekNum + ' · ' : ''}${c.createdAt ? new Date(c.createdAt).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : ''}</div>
+        <div class="ctext">${escapeHtml(c.text || '')}</div>
+      </div>
+      <button class="cdel" data-id="${c.id}">×</button>
+    </div>
+  `).join('');
+}
+document.getElementById('commentListBox').addEventListener('click', (e) => {
+  const id = e.target.dataset.id;
+  if(!id || !e.target.classList.contains('cdel')) return;
+  if(!confirm('Delete this comment?')) return;
+  db.ref('users/' + currentUid + '/comments/' + id).remove();
 });
 
 function openShareLinkModal(link){
@@ -1315,88 +1213,16 @@ document.getElementById('shareLinkCopyBtn').addEventListener('click', async () =
     document.getElementById('shareLinkMsg').textContent = 'Select the text above and copy it manually.';
   }
 });
-
-document.getElementById('publishBtn').addEventListener('click', async () => {
-  const { token } = getSyncConfig();
-  if(!token){
-    alert('This uses the same GitHub token as cross-device sync. Connect that first, then try "get share link" again.');
-    openSyncModal();
-    return;
-  }
-  try{
-    setSyncStatus('syncing');
-    const existingId = localStorage.getItem(REPORT_GIST_KEY) || '';
-    const snapshot = buildReportSnapshot();
-    const newId = await gistPushGeneric(token, existingId, REPORT_GIST_FILENAME, snapshot, true, 'Internship Quest — shared read-only report');
-    if(!existingId) localStorage.setItem(REPORT_GIST_KEY, newId);
-    setSyncStatus('ok');
-    const base = location.href.split('?')[0].replace(/[^/]*$/, '');
-    const link = base + 'report.html?gist=' + newId;
-    openShareLinkModal(link);
-  } catch(e){
-    console.error('Publish failed', e);
-    setSyncStatus('error');
-    alert('Publishing the share link failed: ' + e.message);
-  }
+document.getElementById('publishBtn').addEventListener('click', () => {
+  if(!currentUid) return;
+  const base = location.href.split('?')[0].replace(/[^/]*$/, '');
+  const link = base + 'report.html?uid=' + currentUid;
+  openShareLinkModal(link);
 });
 
-function openSyncModal(){
-  const { token, gistId } = getSyncConfig();
-  document.getElementById('syncTokenInput').value = token;
-  document.getElementById('syncGistInput').value = gistId;
-  document.getElementById('syncModalMsg').textContent = '';
-  document.getElementById('syncModalMsg').className = 'modal-msg';
-  document.getElementById('syncModal').classList.add('show');
-}
-function closeSyncModal(){ document.getElementById('syncModal').classList.remove('show'); }
-
-const syncSetupLink = document.getElementById('syncSetupLink');
-if(!USING_CLAUDE_STORAGE){
-  syncSetupLink.style.display = 'inline';
-  syncSetupLink.addEventListener('click', openSyncModal);
-} else {
-  document.getElementById('syncModal').remove();
-}
-
-document.getElementById('syncCloseBtn')?.addEventListener('click', closeSyncModal);
-document.getElementById('syncModal')?.addEventListener('click', (e) => { if(e.target.id === 'syncModal') closeSyncModal(); });
-
-document.getElementById('syncConnectBtn')?.addEventListener('click', async () => {
-  const token = document.getElementById('syncTokenInput').value.trim();
-  const gistIdInput = document.getElementById('syncGistInput').value.trim();
-  const msg = document.getElementById('syncModalMsg');
-  if(!token){ msg.textContent = 'Paste a personal access token first.'; msg.className = 'modal-msg err'; return; }
-  msg.textContent = 'Connecting…'; msg.className = 'modal-msg';
-  try{
-    if(gistIdInput){
-      // Linking to an existing gist from another device — pull it in as the source of truth.
-      const remote = await gistPull(token, gistIdInput);
-      setSyncConfig(token, gistIdInput);
-      state = remote;
-      state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
-      setLocalCache(state);
-      msg.textContent = 'Connected — pulled your existing data in.'; msg.className = 'modal-msg ok';
-    } else {
-      // First device — create a brand-new gist from what's on this device right now.
-      const newId = await gistPush(token, '', state);
-      setSyncConfig(token, newId);
-      document.getElementById('syncGistInput').value = newId;
-      msg.textContent = 'Connected — Gist ID: ' + newId + ' (copy this to your other devices).'; msg.className = 'modal-msg ok';
-    }
-    setSyncStatus('ok');
-    renderAll();
-  } catch(e){
-    msg.textContent = 'Could not connect: ' + e.message; msg.className = 'modal-msg err';
-  }
-});
-
-document.getElementById('syncDisconnectBtn')?.addEventListener('click', () => {
-  setSyncConfig('', '');
-  document.getElementById('syncTokenInput').value = '';
-  document.getElementById('syncGistInput').value = '';
-  const msg = document.getElementById('syncModalMsg');
-  msg.textContent = 'Disconnected. Saving to this device only from now on.'; msg.className = 'modal-msg';
-  setSyncStatus('local');
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  if(!confirm('Log out of this device?')) return;
+  auth.signOut();
 });
 
 function spawnBubbles(){
@@ -1414,14 +1240,37 @@ function spawnBubbles(){
   });
 }
 
-(async function init(){
-  spawnBubbles();
-  await loadState();
-  const today = isoOf(new Date());
-  const match = state.weeks.find(w => today >= w.start && today <= w.end);
-  currentWeekId = (match || state.weeks[0]).id;
-  renderAll();
-})();
+function showAuthMsg(msg){ document.getElementById('authMsg').textContent = msg || ''; }
+
+document.getElementById('authLoginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if(!email || !password){ showAuthMsg('Enter your email and password.'); return; }
+  showAuthMsg('Logging in…');
+  try{ await auth.signInWithEmailAndPassword(email, password); }
+  catch(e){ showAuthMsg(e.message); }
+});
+document.getElementById('authSignupBtn').addEventListener('click', async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if(!email || !password){ showAuthMsg('Enter an email and a password (6+ characters).'); return; }
+  showAuthMsg('Creating your account…');
+  try{ await auth.createUserWithEmailAndPassword(email, password); }
+  catch(e){ showAuthMsg(e.message); }
+});
+
+auth.onAuthStateChanged((user) => {
+  const gate = document.getElementById('authGate');
+  if(user){
+    gate.classList.add('hide');
+    attachListeners(user.uid);
+  } else {
+    gate.classList.remove('hide');
+    detachListeners();
+  }
+});
+
+spawnBubbles();
 </script>
 </body>
 </html>
