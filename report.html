@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Internship Progress — Shared View</title>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
-    --rose:#ECA6C4; --amethyst:#A98BDB; --amethyst-deep:#8467C2;
+    --rose:#ECA6C4; --rose-deep:#D9769E; --amethyst:#A98BDB; --amethyst-deep:#8467C2;
     --amber:#EFC07E; --amber-deep:#D99A3E; --mint:#8FDCC4; --mint-deep:#5CBE9E;
-    --coral-deep:#CC6650; --ink:#3A2E42; --ink-soft:#7A6D85;
+    --coral:#E8917E; --coral-deep:#CC6650; --ink:#3A2E42; --ink-soft:#7A6D85;
     --glass: rgba(255,255,255,0.32); --glass-border: rgba(255,255,255,0.55); --radius:20px;
   }
   *{ box-sizing:border-box; }
@@ -23,146 +25,275 @@
     background-attachment: fixed;
   }
   .glass{ background: var(--glass); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); border:1px solid var(--glass-border); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(80,50,90,0.12); }
-  .wrap{ max-width: 760px; margin: 0 auto; padding: 30px 22px 60px; }
-  .banner{ padding:10px 16px; border-radius:12px; background: rgba(217,154,62,0.18); border:1px solid rgba(217,154,62,0.3); font-family:'JetBrains Mono'; font-size:11px; color: var(--amber-deep); margin-bottom:18px; text-align:center; }
-  .head{ padding:22px 26px; margin-bottom:18px; }
-  .head h1{ font-family:'Quicksand'; font-weight:700; font-size:22px; margin:0 0 4px; }
-  .head .sub{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
-  .stats{ display:flex; gap:14px; margin-top:14px; flex-wrap:wrap; }
-  .stat{ background: rgba(255,255,255,0.4); border-radius:12px; padding:8px 14px; font-family:'Quicksand'; font-weight:700; font-size:13px; }
-  .stat span{ display:block; font-family:'JetBrains Mono'; font-weight:400; font-size:9.5px; color: var(--ink-soft); margin-top:2px; }
+  .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 20px 60px; }
+  .banner{ padding:10px 16px; border-radius:12px; background: rgba(92,190,158,0.18); border:1px solid rgba(92,190,158,0.35); font-family:'JetBrains Mono'; font-size:11px; color: var(--mint-deep); margin-bottom:16px; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .live-dot{ width:6px; height:6px; border-radius:50%; background: var(--mint-deep); animation: pulse 1.4s infinite ease-in-out; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
 
-  .week-card{ padding:18px 22px; margin-bottom:14px; }
-  .week-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px; }
-  .week-head h2{ font-family:'Quicksand'; font-weight:700; font-size:15.5px; margin:0; }
-  .week-head .range{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); }
-  .cleared-pill{ font-family:'Quicksand'; font-weight:700; font-size:10.5px; color:#fff; background: linear-gradient(135deg, var(--mint-deep), var(--mint)); padding:4px 10px; border-radius:20px; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 22px; margin-bottom:18px; flex-wrap:wrap; }
+  .topbar h1{ font-family:'Quicksand'; font-weight:700; font-size:18px; margin:0; }
+  .topbar .sub{ font-family:'JetBrains Mono'; font-size:10px; color: var(--ink-soft); }
+  .stats{ display:flex; gap:10px; flex-wrap:wrap; }
+  .stat{ background: rgba(255,255,255,0.4); border-radius:12px; padding:7px 13px; font-family:'Quicksand'; font-weight:700; font-size:12.5px; }
+  .stat span{ display:block; font-family:'JetBrains Mono'; font-weight:400; font-size:9px; color: var(--ink-soft); margin-top:2px; }
 
-  .day-block{ margin-bottom:8px; }
-  .day-block h4{ font-family:'Quicksand'; font-weight:600; font-size:11.5px; color: var(--ink-soft); margin:0 0 4px; }
-  .task-row{ display:flex; align-items:center; gap:8px; padding:4px 2px; font-size:12.5px; }
+  .week-nav{ display:flex; gap:8px; overflow-x:auto; padding: 4px 2px 14px; }
+  .week-chip{ flex-shrink:0; font-family:'Quicksand'; font-weight:600; font-size:12px; padding:8px 16px; border-radius:20px; cursor:pointer; background: rgba(255,255,255,0.3); border:1px solid rgba(255,255,255,0.5); }
+  .week-chip.active{ background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; border-color:transparent; }
+  .week-chip.cleared::after{ content:' ✓'; }
+
+  .head-card{ padding:18px 22px; margin-bottom:16px; }
+  .head-card h2{ font-family:'Quicksand'; font-weight:700; font-size:19px; margin:0 0 4px; }
+  .head-card .range{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); }
+
+  .day-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px; margin-bottom:18px; }
+  .day-card{ padding:14px 15px; }
+  .day-head{ font-family:'Quicksand'; font-weight:700; font-size:13px; margin-bottom:10px; }
+  .day-head .dd{ font-family:'JetBrains Mono'; font-weight:400; font-size:9.5px; color: var(--ink-soft); margin-left:6px; }
+  .task-row{ display:flex; align-items:center; gap:7px; padding:5px 4px; font-size:12px; border-radius:8px; }
   .task-row.done{ color: var(--ink-soft); text-decoration: line-through; }
+  .task-row.mine{ background: rgba(217,154,62,0.12); }
   .task-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
   .dot-high{ background: var(--coral-deep); } .dot-medium{ background: var(--amber-deep); } .dot-low{ background: var(--mint-deep); }
-  .task-time{ font-family:'JetBrains Mono'; font-size:9.5px; color: var(--ink-soft); }
+  .task-time{ font-family:'JetBrains Mono'; font-size:9px; color: var(--ink-soft); }
+  .mine-tag{ font-family:'JetBrains Mono'; font-size:7.5px; padding:2px 6px; border-radius:10px; background: rgba(217,154,62,0.3); color: var(--amber-deep); text-transform:uppercase; }
+  .day-empty{ font-family:'JetBrains Mono'; font-size:10px; color: var(--ink-soft); margin-bottom:8px; }
 
-  .reflect{ margin-top:12px; padding-top:12px; border-top:1px solid rgba(150,110,160,0.15); }
-  .reflect .rlabel{ font-family:'Quicksand'; font-weight:700; font-size:11.5px; margin-bottom:3px; }
-  .reflect p{ font-size:12.5px; margin:0 0 10px; white-space:pre-wrap; }
+  .add-task-form{ margin-top:10px; padding-top:10px; border-top:1px solid rgba(150,110,160,0.15); display:flex; flex-direction:column; gap:6px; }
+  .add-task-form input[type=text]{ border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:7px 10px; font-family:'Inter'; font-size:12px; border-radius:10px; color: var(--ink); }
+  .add-task-form .row2{ display:flex; gap:6px; }
+  .add-task-form select, .add-task-form input[type=time]{ border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:6px 8px; font-family:'JetBrains Mono'; font-size:10.5px; border-radius:10px; flex:1; }
+  .add-task-form button{ background: linear-gradient(135deg, var(--amber), var(--rose)); color:#fff; border:none; padding:0 12px; font-family:'Quicksand'; font-weight:700; font-size:11.5px; border-radius:10px; cursor:pointer; }
 
-  .skill-card{ padding:14px 18px; margin-bottom:10px; }
-  .skill-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .skill-top .n{ font-family:'Quicksand'; font-weight:700; font-size:13.5px; }
-  .skill-top .t{ font-family:'JetBrains Mono'; font-size:9.5px; background: rgba(169,139,219,0.25); color: var(--amethyst-deep); padding:3px 9px; border-radius:20px; text-transform:uppercase; }
-  .skill-entry{ font-size:11.5px; padding:4px 0; border-bottom:1px solid rgba(150,110,160,0.1); }
-  .skill-entry:last-child{ border-bottom:none; }
-  .skill-entry b{ font-family:'JetBrains Mono'; font-weight:600; font-size:9.5px; color: var(--ink-soft); margin-right:6px; }
+  .reflect-view{ padding:18px 22px; margin-bottom:16px; }
+  .reflect-view h3{ font-family:'Quicksand'; font-weight:700; font-size:14px; margin:0 0 10px; }
+  .reflect-view .rlabel{ font-family:'Quicksand'; font-weight:700; font-size:11.5px; margin-bottom:3px; }
+  .reflect-view p{ font-size:12.5px; margin:0 0 12px; white-space:pre-wrap; color: var(--ink); }
+  .reflect-empty{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
 
-  .empty, .loading{ font-family:'JetBrains Mono'; font-size:12px; color: var(--ink-soft); text-align:center; padding:40px 10px; }
-  .footer{ text-align:center; font-family:'JetBrains Mono'; font-size:10px; color: rgba(58,46,66,0.4); margin-top:20px; }
-  @media print{ .banner{ display:none; } body{ background: white; } .glass{ backdrop-filter:none; background: white; box-shadow:none; border:1px solid #ddd; } }
+  .comments-card{ padding:18px 22px; }
+  .comments-card h3{ font-family:'Quicksand'; font-weight:700; font-size:14px; margin:0 0 12px; }
+  .comment{ display:flex; gap:9px; padding:8px 2px; border-bottom:1px solid rgba(150,110,160,0.12); }
+  .comment:last-child{ border-bottom:none; }
+  .comment .cav{ width:24px; height:24px; border-radius:50%; flex-shrink:0; background: linear-gradient(135deg, var(--amber), var(--rose)); }
+  .comment .cmeta{ font-family:'JetBrains Mono'; font-size:9px; color: var(--ink-soft); margin-bottom:2px; }
+  .comment .ctext{ font-size:12.5px; white-space:pre-wrap; }
+  .comment-form{ margin-top:14px; padding-top:14px; border-top:1px solid rgba(150,110,160,0.15); }
+  .comment-form select{ width:100%; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:8px 10px; font-family:'JetBrains Mono'; font-size:11px; border-radius:10px; margin-bottom:8px; }
+  .comment-form textarea{ width:100%; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:10px; font-family:'Inter'; font-size:12.5px; border-radius:10px; min-height:70px; resize:vertical; margin-bottom:8px; }
+  .comment-form button{ background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; border:none; padding:9px 18px; font-family:'Quicksand'; font-weight:700; font-size:12.5px; border-radius:10px; cursor:pointer; }
+
+  .loading, .empty{ font-family:'JetBrains Mono'; font-size:12px; color: var(--ink-soft); text-align:center; padding:50px 10px; }
+  .toast{ position:fixed; top:20px; right:20px; z-index:50; padding:12px 18px; border-radius:14px; background: linear-gradient(135deg, var(--mint), var(--mint-deep)); color:#fff; font-family:'Quicksand'; font-weight:700; font-size:12.5px; transform: translateX(140%); transition: transform .35s ease; }
+  .toast.show{ transform: translateX(0); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="banner">👁 View-only shared report — nothing here can be edited</div>
-  <div id="content"><div class="loading">Loading progress report…</div></div>
-  <div class="footer" id="footerNote" style="display:none;">Generated with Internship Quest</div>
+  <div class="banner"><span class="live-dot"></span>  updates automatically</div>
+  <div id="app"><div class="loading">Loading progress…</div></div>
 </div>
+<div class="toast" id="toast"></div>
+
 <script>
+// Must match the FIREBASE_CONFIG in the main tracker exactly.
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+
+const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+let uidParam = new URLSearchParams(location.search).get('uid');
+let state = null, supervisorTasks = {}, comments = {};
+let activeWeekId = null;
+
 function fmtDate(iso){ const d = new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
 function fmtDateFull(iso){ const d = new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
-function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML; }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function isoOf(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 
-async function load(){
-  const params = new URLSearchParams(location.search);
-  const gistId = params.get('gist');
-  const content = document.getElementById('content');
-  if(!gistId){
-    content.innerHTML = '<div class="empty">No report specified. Ask for a link that includes ?gist=…</div>';
-    return;
-  }
-  try{
-    const res = await fetch('https://api.github.com/gists/' + gistId);
-    if(!res.ok) throw new Error('Could not load report (' + res.status + ')');
-    const data = await res.json();
-    const file = Object.values(data.files || {})[0];
-    if(!file || !file.content) throw new Error('Report file not found in that gist');
-    const report = JSON.parse(file.content);
-    render(report);
-  } catch(e){
-    content.innerHTML = '<div class="empty">This report could not be loaded. It may have been unpublished, or the link is incorrect.</div>';
-    console.error(e);
-  }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2600);
 }
 
-function render(r){
-  const content = document.getElementById('content');
+function render(){
+  const app = document.getElementById('app');
+  if(!state){ app.innerHTML = '<div class="empty">No report found for this link.</div>'; return; }
+
+  if(!activeWeekId || !state.weeks.some(w=>w.id===activeWeekId)){
+    const today = isoOf(new Date());
+    const match = state.weeks.find(w => today >= w.start && today <= w.end);
+    activeWeekId = (match || state.weeks[state.weeks.length-1]).id;
+  }
+  const w = state.weeks.find(x => x.id === activeWeekId);
+  const xp = state.xp || 0;
+
   let html = `
-    <div class="head glass">
-      <h1>Internship Progress</h1>
-      <div class="sub">Last updated ${new Date(r.generatedAt).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+    <div class="topbar glass">
+      <div><h1>${escapeHtml(state.name || 'Internship Progress')}</h1><div class="sub">Live — updates instantly</div></div>
       <div class="stats">
-        <div class="stat">Level ${r.level}<span>${escapeHtml(r.rank || '')}</span></div>
-        <div class="stat">${r.xp} XP<span>total earned</span></div>
-        <div class="stat">${r.streak}<span>week streak</span></div>
+        <div class="stat">Lv ${state.level||1}<span>${escapeHtml(state.rank||'')}</span></div>
+        <div class="stat">${xp} XP<span>total</span></div>
+        <div class="stat">${state.streak||0}<span>streak</span></div>
       </div>
+    </div>
+    <div class="week-nav">
+      ${state.weeks.map(wk => `<div class="week-chip${wk.id===activeWeekId?' active':''}${wk.cleared?' cleared':''}" data-id="${wk.id}">W${wk.weekNum}</div>`).join('')}
     </div>
   `;
 
-  (r.weeks || []).forEach(w => {
-    const allTasks = (w.days || []).flatMap(d => (d.tasks || []).map(t => ({ ...t, date: d.date })));
-    if(allTasks.length === 0 && !(w.reflection && (w.reflection.did || w.reflection.learned))) return;
-    html += `<div class="week-card glass">
-      <div class="week-head">
-        <div><h2>Week ${w.weekNum}</h2><div class="range">${fmtDateFull(w.start)} – ${fmtDateFull(w.end)}</div></div>
-        ${w.cleared ? '<span class="cleared-pill">Cleared ✓</span>' : ''}
-      </div>`;
-
-    (w.days || []).forEach(d => {
-      if(!d.tasks || d.tasks.length === 0) return;
-      html += `<div class="day-block"><h4>${fmtDate(d.date)}</h4>`;
-      d.tasks.forEach(t => {
-        html += `<div class="task-row${t.done ? ' done' : ''}">
-          <span class="task-dot dot-${t.priority}"></span>
-          <span>${escapeHtml(t.text)}</span>
-          ${t.time ? `<span class="task-time">${t.time}</span>` : ''}
-        </div>`;
-      });
-      html += `</div>`;
-    });
-
-    if(w.reflection && (w.reflection.did || w.reflection.learned)){
-      html += `<div class="reflect">`;
-      if(w.reflection.did) html += `<div class="rlabel">📝 What I did</div><p>${escapeHtml(w.reflection.did)}</p>`;
-      if(w.reflection.learned) html += `<div class="rlabel">💡 What I learned</div><p>${escapeHtml(w.reflection.learned)}</p>`;
-      html += `</div>`;
-    }
-    html += `</div>`;
-  });
-
-  if((r.skills || []).length){
-    html += `<div class="week-card glass"><div class="week-head"><h2>Skill Journal</h2></div>`;
-    r.skills.forEach(s => {
-      html += `<div class="skill-card glass">
-        <div class="skill-top"><span class="n">${escapeHtml(s.name)}</span><span class="t">${escapeHtml(s.tier)}</span></div>`;
-      if(!s.entries || s.entries.length === 0){
-        html += `<div class="skill-entry" style="opacity:0.6;">No entries logged yet.</div>`;
+  if(w){
+    html += `<div class="head-card glass"><h2>Week ${w.weekNum}</h2><div class="range">${fmtDateFull(w.start)} – ${fmtDateFull(w.end)}</div></div>`;
+    html += `<div class="day-grid">`;
+    w.days.forEach((day, dIdx) => {
+      const supForDay = Object.entries(supervisorTasks || {}).filter(([id,t]) => t.date === day.date).map(([id,t]) => ({id, ...t}));
+      html += `<div class="day-card glass">
+        <div class="day-head">${DAY_NAMES[dIdx]}<span class="dd">${fmtDate(day.date)}</span></div>`;
+      if(day.tasks.length === 0 && supForDay.length === 0){
+        html += `<div class="day-empty">No tasks yet.</div>`;
       } else {
-        s.entries.forEach(en => {
-          html += `<div class="skill-entry"><b>${fmtDate(en.date)}</b>${escapeHtml(en.note)}</div>`;
+        day.tasks.forEach(t => {
+          html += `<div class="task-row${t.done?' done':''}"><span class="task-dot dot-${t.priority}"></span><span>${escapeHtml(t.text)}</span>${t.time?`<span class="task-time">${t.time}</span>`:''}</div>`;
+        });
+        supForDay.forEach(t => {
+          html += `<div class="task-row mine${t.done?' done':''}"><span class="task-dot dot-${t.priority||'medium'}"></span><span>${escapeHtml(t.text)}</span>${t.time?`<span class="task-time">${t.time}</span>`:''}<span class="mine-tag">you added</span></div>`;
         });
       }
-      html += `</div>`;
+      html += `
+        <form class="add-task-form" data-date="${day.date}">
+          <input type="text" placeholder="Add a task for her…" class="at-text" maxlength="120" required>
+          <div class="row2">
+            <select class="at-priority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+            <input type="time" class="at-time">
+            <button type="submit">Add</button>
+          </div>
+        </form>
+      </div>`;
     });
     html += `</div>`;
+
+    if(w.reflection && (w.reflection.did || w.reflection.learned)){
+      html += `<div class="reflect-view glass"><h3>Her weekly reflection</h3>`;
+      if(w.reflection.did) html += `<div class="rlabel">📝 What she did</div><p>${escapeHtml(w.reflection.did)}</p>`;
+      if(w.reflection.learned) html += `<div class="rlabel">💡 What she learned</div><p>${escapeHtml(w.reflection.learned)}</p>`;
+      html += `</div>`;
+    }
   }
 
-  content.innerHTML = html;
-  document.getElementById('footerNote').style.display = 'block';
+  const commentList = Object.entries(comments||{}).map(([id,c])=>({id,...c})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  html += `<div class="comments-card glass">
+    <h3>💬 Comments</h3>
+    ${commentList.length === 0 ? '<div class="empty" style="padding:16px 4px;">No comments yet — leave the first one below.</div>' :
+      commentList.map(c => `
+        <div class="comment">
+          <div class="cav"></div>
+          <div>
+            <div class="cmeta">${c.weekNum ? 'On Week ' + c.weekNum + ' · ' : ''}${c.createdAt ? new Date(c.createdAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div>
+            <div class="ctext">${escapeHtml(c.text)}</div>
+          </div>
+        </div>
+      `).join('')
+    }
+    <form class="comment-form" id="commentForm">
+      <select id="commentWeek">
+        ${state.weeks.map(wk => `<option value="${wk.weekNum}" ${wk.id===activeWeekId?'selected':''}>Week ${wk.weekNum}</option>`).join('')}
+      </select>
+      <textarea id="commentText" placeholder="Leave a comment or piece of feedback…" required></textarea>
+      <button type="submit">Post comment</button>
+    </form>
+  </div>`;
+
+  app.innerHTML = html;
+
+  document.querySelectorAll('.week-chip').forEach(el => {
+    el.addEventListener('click', () => { activeWeekId = el.dataset.id; render(); });
+  });
+  document.querySelectorAll('.add-task-form').forEach(form => {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = form.querySelector('.at-text').value.trim();
+      if(!text || !uidParam) return;
+      const priority = form.querySelector('.at-priority').value;
+      const time = form.querySelector('.at-time').value;
+      const date = form.dataset.date;
+      db.ref('users/' + uidParam + '/supervisorTasks/' + uid()).set({
+        text, priority, time, date, done:false, addedBy:'supervisor', createdAt: Date.now()
+      }).then(() => showToast('Task added ✓')).catch(err => showToast('Could not add task: ' + err.message));
+      form.reset();
+    });
+  });
+  const cForm = document.getElementById('commentForm');
+  if(cForm){
+    cForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = document.getElementById('commentText').value.trim();
+      const weekNum = parseInt(document.getElementById('commentWeek').value, 10);
+      if(!text || !uidParam) return;
+      db.ref('users/' + uidParam + '/comments/' + uid()).set({
+        text, weekNum, createdAt: Date.now()
+      }).then(() => showToast('Comment posted ✓')).catch(err => showToast('Could not post: ' + err.message));
+      cForm.reset();
+    });
+  }
 }
 
-load();
+function buildDisplayState(raw){
+  // raw is the intern's live state {weeks, skills}; compute the read-only summary fields here.
+  const XP_PER_TASK = 10, XP_PER_LEVEL = 200, WEEK_CLEAR_BONUS = 50, XP_PER_ENTRY = 15;
+  const RANKS = [
+    {min:1,title:'Rookie Intern'},{min:3,title:'Intern'},{min:5,title:'Skilled Intern'},
+    {min:8,title:'Senior Intern'},{min:11,title:'Team Contributor'},{min:15,title:'Intern Legend'}
+  ];
+  let xp = 0;
+  (raw.weeks||[]).forEach(w => {
+    const tasks = (w.days||[]).flatMap(d=>d.tasks||[]);
+    xp += tasks.filter(t=>t.done).length * XP_PER_TASK;
+    if(w.cleared) xp += WEEK_CLEAR_BONUS;
+  });
+  (raw.skills||[]).forEach(s => xp += (s.entries||[]).length * XP_PER_ENTRY);
+  xp += Object.values(supervisorTasks||{}).filter(t=>t.done).length * XP_PER_TASK;
+  const level = Math.floor(xp/XP_PER_LEVEL)+1;
+  let rank = RANKS[0].title;
+  RANKS.forEach(r => { if(level >= r.min) rank = r.title; });
+
+  const sorted = [...(raw.weeks||[])].sort((a,b)=>b.weekNum-a.weekNum);
+  const today = isoOf(new Date());
+  let streak = 0;
+  for(const w of sorted){ if(w.start > today) continue; if(w.cleared) streak++; else break; }
+
+  return { ...raw, xp, level, rank, streak };
+}
+
+if(!uidParam){
+  document.getElementById('app').innerHTML = '<div class="empty">No report specified. Ask for a link that includes ?uid=…</div>';
+} else {
+  db.ref('users/' + uidParam + '/state').on('value', (snap) => {
+    const raw = snap.val();
+    state = raw ? buildDisplayState(raw) : null;
+    render();
+  }, () => { document.getElementById('app').innerHTML = '<div class="empty">Could not load this report.</div>'; });
+
+  db.ref('users/' + uidParam + '/supervisorTasks').on('value', (snap) => {
+    supervisorTasks = snap.val() || {};
+    if(state) render();
+  });
+  db.ref('users/' + uidParam + '/comments').on('value', (snap) => {
+    comments = snap.val() || {};
+    if(state) render();
+  });
+}
 </script>
 </body>
 </html>
