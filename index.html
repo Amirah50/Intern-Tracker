@@ -227,8 +227,8 @@
 
   /* ===== Two-column quest layout: daily grid + reflection on the left, task board on the right ===== */
   .quest-columns{ display:flex; gap:16px; align-items:flex-start; }
-  .quest-main{ flex:1 1 0; min-width:0; }
-  .quest-side{ width: 320px; flex-shrink:0; position:sticky; top:16px; }
+  .quest-main{ flex:1 1 0; min-width:0; order:2; }
+  .quest-side{ width: 320px; flex-shrink:0; position:sticky; top:16px; order:1; }
   @media (max-width: 1100px){
     .quest-columns{ flex-direction:column; }
     .quest-side{ width:100%; position:static; }
