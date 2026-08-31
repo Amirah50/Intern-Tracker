@@ -6,8 +6,6 @@
 <title>Internship Quest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --rose: #ECA6C4; --rose-deep: #D9769E;
@@ -67,6 +65,7 @@
 
   .layout{ display:flex; gap:20px; align-items:flex-start; }
 
+  /* Path / map sidebar */
   .week-rail{ width: 250px; flex-shrink:0; padding: 18px 12px; max-height: 720px; overflow-y:auto; }
   .week-rail::-webkit-scrollbar{ width:5px; }
   .week-rail::-webkit-scrollbar-thumb{ background: rgba(150,110,160,0.3); border-radius:4px; }
@@ -134,17 +133,6 @@
   .add-week-btn{ width:100%; margin-top:8px; padding:9px; border-radius:14px; cursor:pointer; background: rgba(255,255,255,0.25); border:1px dashed rgba(150,110,160,0.4); font-family:'Quicksand'; font-weight:600; font-size:12px; color: var(--ink-soft); }
   .add-week-btn:hover{ background: rgba(255,255,255,0.4); color: var(--amethyst-deep); }
 
-  .side-weekly{ margin-top:14px; padding: 16px 12px; }
-  .side-weekly .card-head{ margin-bottom:8px; }
-  .side-weekly .card-head h3{ font-size:12.5px; }
-  .side-weekly .count{ font-family:'JetBrains Mono'; font-size:9.5px; color: var(--ink-soft); }
-  .side-weekly .wk-add-row{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
-  .side-weekly .wk-add-row input[type=text]{ min-width:0; font-size:12px; padding:7px 10px; }
-  .side-weekly .wk-add-row select, .side-weekly .wk-add-row input[type=date]{ font-size:9.5px; padding:6px 6px; }
-  .side-weekly .wk-task{ padding: 8px 8px; }
-  .side-weekly .wk-task .txt{ font-size:11.5px; }
-  .side-weekly .filter-select{ font-size:10.5px; padding:6px 8px; }
-
   .panel{ flex:1; min-width:0; }
   .view{ display:none; }
   .view.active{ display:block; }
@@ -157,49 +145,6 @@
   .week-bar-fill{ height:100%; border-radius:6px; background: linear-gradient(90deg, var(--mint), var(--amber)); transition: width .3s ease; }
   .week-pct{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
   .cleared-pill{ font-family:'Quicksand'; font-weight:700; font-size:11.5px; color: #fff; background: linear-gradient(135deg, var(--mint-deep), var(--mint)); padding:5px 12px; border-radius:20px; }
-
-  .card{ padding: 20px 24px; margin-bottom: 16px; }
-  .card-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
-  .card-head h3{ font-family:'Quicksand'; font-weight:700; font-size:15px; margin:0; }
-  .card-head .count{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
-  .card-head .head-right{ display:flex; align-items:center; gap:10px; }
-
-  .filter-select{
-    font-family:'JetBrains Mono'; font-size:11px; color: var(--ink); background: rgba(255,255,255,0.55);
-    border:1px solid rgba(150,110,160,0.25); padding:6px 10px; border-radius:10px; cursor:pointer;
-  }
-  .filter-select:focus{ outline:none; border-color: var(--amethyst); }
-
-  .private-note{ font-family:'JetBrains Mono'; font-size:10px; color: var(--ink-soft); display:flex; align-items:center; gap:5px; margin: -4px 0 12px 2px; }
-
-  .wk-add-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-  .wk-add-row input[type=text]{ flex:1; min-width:160px; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:10px 14px; font-family:'Inter'; font-size:13.5px; border-radius: 12px; color: var(--ink); }
-  .wk-add-row select, .wk-add-row input[type=date]{ border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:9px 10px; font-family:'JetBrains Mono'; font-size:12px; border-radius: 12px; color: var(--ink); }
-  .wk-add-row button{ background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; border:none; padding: 0 18px; font-family:'Quicksand'; font-weight:700; font-size:13px; border-radius: 12px; cursor:pointer; }
-  .wk-add-row input:focus, .wk-add-row select:focus{ outline:none; border-color: var(--amethyst); }
-
-  .wk-task{ display:flex; align-items:flex-start; gap:10px; padding: 10px 8px; margin-bottom:6px; border-radius:12px; background: rgba(255,255,255,0.3); border:1px solid rgba(255,255,255,0.4); }
-  .wk-task.done{ background: rgba(143,220,196,0.22); border-color: rgba(92,190,158,0.35); }
-  .wk-task.sup{ background: rgba(217,154,62,0.12); border-color: rgba(217,154,62,0.3); }
-  .wk-task .check{ width:19px; height:19px; border-radius:50%; border:2px solid var(--amethyst); flex-shrink:0; cursor:pointer; margin-top:1px; position:relative; background: rgba(255,255,255,0.6); }
-  .wk-task.done .check{ background: linear-gradient(135deg, var(--mint), var(--mint-deep)); border-color: var(--mint-deep); }
-  .wk-task.done .check::after{ content:''; position:absolute; left:5px; top:1px; width:6px; height:10px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(40deg); }
-  .wk-task .body{ flex:1; min-width:0; }
-  .wk-task .txt{ font-size:13px; cursor:pointer; word-break:break-word; }
-  .wk-task.done .txt{ text-decoration: line-through; color: var(--ink-soft); }
-  .wk-task .meta{ display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; }
-  .pri-tag{ font-family:'JetBrains Mono'; font-size:8.5px; padding:2px 7px; border-radius:10px; text-transform:uppercase; letter-spacing:0.02em; }
-  .pri-low{ background: rgba(143,220,196,0.3); color: var(--mint-deep); }
-  .pri-medium{ background: rgba(239,192,126,0.35); color: var(--amber-deep); }
-  .pri-high{ background: rgba(232,145,126,0.35); color: var(--coral-deep); }
-  .deadline-tag{ font-family:'JetBrains Mono'; font-size:8.5px; color: var(--ink-soft); background: rgba(150,110,160,0.12); padding:2px 7px; border-radius:10px; }
-  .deadline-tag.overdue{ color: var(--coral-deep); background: rgba(232,145,126,0.22); }
-  .status-tag{ font-family:'JetBrains Mono'; font-size:8.5px; padding:2px 7px; border-radius:10px; }
-  .status-tag.pending{ background: rgba(217,118,158,0.18); color: var(--rose-deep); }
-  .status-tag.completed{ background: rgba(92,190,158,0.2); color: var(--mint-deep); }
-  .sup-tag{ font-family:'JetBrains Mono'; font-size:8px; color: var(--amber-deep); background: rgba(217,154,62,0.22); padding:2px 7px; border-radius:10px; }
-  .wk-task .del{ background:none; border:none; color: var(--rose-deep); font-size:16px; cursor:pointer; opacity:0.5; flex-shrink:0; }
-  .wk-task .del:hover{ opacity:1; }
 
   .day-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap:14px; }
   .day-card{ padding: 14px 15px; }
@@ -231,10 +176,19 @@
   .mini-task .txt{ font-size:12.5px; cursor:pointer; word-break:break-word; }
   .mini-task.done .txt{ text-decoration: line-through; color: var(--ink-soft); }
   .mini-task .meta{ display:flex; gap:6px; margin-top:3px; flex-wrap:wrap; }
+  .pri-tag{ font-family:'JetBrains Mono'; font-size:8.5px; padding:2px 7px; border-radius:10px; text-transform:uppercase; letter-spacing:0.02em; }
+  .pri-low{ background: rgba(143,220,196,0.3); color: var(--mint-deep); }
+  .pri-medium{ background: rgba(239,192,126,0.35); color: var(--amber-deep); }
+  .pri-high{ background: rgba(232,145,126,0.35); color: var(--coral-deep); }
   .time-tag{ font-family:'JetBrains Mono'; font-size:8.5px; color: var(--ink-soft); background: rgba(150,110,160,0.12); padding:2px 7px; border-radius:10px; }
   .mini-task .del{ background:none; border:none; color: var(--rose-deep); font-size:15px; cursor:pointer; opacity:0.5; flex-shrink:0; }
   .mini-task .del:hover{ opacity:1; }
   .day-empty{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); padding: 6px 2px; }
+
+  .card{ padding: 20px 24px; margin-bottom: 16px; }
+  .card-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+  .card-head h3{ font-family:'Quicksand'; font-weight:700; font-size:15px; margin:0; }
+  .card-head .count{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
 
   .add-row{ display:flex; gap:8px; margin-bottom:14px; }
   .add-row input{ flex:1; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:10px 14px; font-family:'Inter'; font-size:13.5px; border-radius: 12px; color: var(--ink); }
@@ -280,21 +234,12 @@
   .reflect-saved.show{ opacity:1; }
   @media (max-width: 640px){ .reflect-grid{ grid-template-columns: 1fr; } }
 
-  .comment{ display:flex; gap:10px; padding: 9px 2px; border-bottom:1px solid rgba(150,110,160,0.12); }
-  .comment:last-child{ border-bottom:none; }
-  .comment .cavatar{ width:26px; height:26px; border-radius:50%; flex-shrink:0; background: linear-gradient(135deg, var(--amber), var(--rose)); display:flex; align-items:center; justify-content:center; font-size:12px; }
-  .comment .cbody{ flex:1; min-width:0; }
-  .comment .cmeta{ font-family:'JetBrains Mono'; font-size:9px; color: var(--ink-soft); margin-bottom:2px; }
-  .comment .ctext{ font-size:12.5px; white-space:pre-wrap; }
-  .comment .cdel{ background:none; border:none; color: var(--rose-deep); font-size:15px; opacity:0.5; cursor:pointer; flex-shrink:0; }
-  .comment .cdel:hover{ opacity:1; }
-
   .footer-note{ font-family:'JetBrains Mono'; font-size:10px; color: rgba(58,46,66,0.45); text-align:center; margin-top:14px; }
   .sync-status{ display:inline-flex; align-items:center; gap:5px; }
   .sync-dot{ width:6px; height:6px; border-radius:50%; background: var(--mint-deep); }
   .sync-dot.syncing{ background: var(--amber-deep); animation: pulse 1s infinite ease-in-out; }
   .sync-dot.error{ background: var(--coral-deep); }
-  .reset-link{ color: rgba(58,46,66,0.45); cursor:pointer; text-decoration:underline; }
+  .sync-dot.local{ background: var(--ink-soft); }
 
   .modal-overlay{
     display:none; position:fixed; inset:0; z-index:60; background: rgba(58,46,66,0.35);
@@ -304,6 +249,8 @@
   .modal{ width:100%; max-width: 440px; padding:24px 26px; max-height:85vh; overflow-y:auto; }
   .modal h3{ font-family:'Quicksand'; font-weight:700; font-size:17px; margin:0 0 10px; }
   .modal-p{ font-size:12.5px; line-height:1.5; color: var(--ink-soft); margin: 0 0 12px; }
+  .modal-steps{ font-size:12px; line-height:1.6; color: var(--ink); padding-left:18px; margin: 0 0 14px; }
+  .modal-steps a{ color: var(--amethyst-deep); }
   .modal-label{ font-family:'Quicksand'; font-weight:700; font-size:11.5px; display:block; margin: 10px 0 6px; }
   .modal-input{
     width:100%; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.6);
@@ -320,6 +267,7 @@
   .modal-msg.ok{ color: var(--mint-deep); }
   .modal-msg.err{ color: var(--coral-deep); }
   @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+  .reset-link{ color: rgba(58,46,66,0.45); cursor:pointer; text-decoration:underline; }
 
   @media (max-width: 900px){
     .layout{ flex-direction:column; }
@@ -390,30 +338,6 @@
           <div id="deadlineList"></div>
         </div>
       </div>
-
-      <div class="card side-weekly" id="weeklyTasksCardWrap">
-        <div class="card-head">
-          <h3>📋 Weekly Tasks <span class="count" id="weeklyCount">0</span></h3>
-        </div>
-        <div class="head-right" style="margin-bottom:10px;">
-          <select class="filter-select" id="weeklyFilter" style="width:100%;">
-            <option value="all">All</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-        <div class="wk-add-row">
-          <input type="text" id="weeklyText" placeholder="Add a task for this week…" maxlength="140">
-          <select id="weeklyPriority">
-            <option value="low">Low</option>
-            <option value="medium" selected>Medium</option>
-            <option value="high">High</option>
-          </select>
-          <input type="date" id="weeklyDeadline">
-          <button id="weeklyAddBtn">Add</button>
-        </div>
-        <div id="weeklyTaskList"></div>
-      </div>
     </aside>
 
     <div class="panel">
@@ -431,13 +355,9 @@
           </div>
         </div>
 
-        <div class="card glass">
-          <div class="card-head"><h3>🗓️ Daily checklist</h3></div>
-          <div class="private-note">🔒 Private — only visible to you, never shown in the shared report</div>
-          <div class="day-grid" id="dayGrid"></div>
-        </div>
+        <div class="day-grid" id="dayGrid"></div>
 
-        <div class="card glass">
+        <div class="card glass" style="margin-top:16px;">
           <div class="card-head"><h3>Week reflection</h3><span class="reflect-saved" id="reflectSaved">Saved</span></div>
           <div class="reflect-grid">
             <div class="reflect-block">
@@ -449,11 +369,6 @@
               <textarea class="reflect-area" id="learnedArea" placeholder="Key takeaways, new skills, lessons from mistakes…"></textarea>
             </div>
           </div>
-        </div>
-
-        <div class="card glass">
-          <div class="card-head"><h3>💬 Comments</h3><span class="count" id="commentCount">0</span></div>
-          <div id="commentListBox"></div>
         </div>
       </section>
 
@@ -475,9 +390,8 @@
       </section>
 
       <div class="footer-note">
-        <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced live</span></span>
-        · <span class="reset-link" id="publishBtn">get share link</span>
-        · <span class="reset-link" id="deviceLinkBtn">link another device</span>
+        <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced to your account</span></span>
+        · <span class="reset-link" id="syncSetupLink" style="display:none;">set up cross-device sync</span>
         · <span class="reset-link" id="exportBtn">export backup</span>
         · <span class="reset-link" id="importBtn">import backup</span>
         · <span class="reset-link" id="resetAll">reset all data</span>
@@ -495,34 +409,25 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="shareLinkModal">
+<div class="modal-overlay" id="syncModal">
   <div class="modal glass">
-    <h3>Live share link</h3>
-    <p class="modal-p">Anyone with this link sees your <b>Weekly Tasks</b>, reflections, skill journal, and progress <b>update in real time</b>. Your daily checklist stays private and never appears here. They can add weekly tasks and leave comments, but can't edit or complete your existing items. There's no login involved, so treat the link itself as the "password" — only send it directly to your supervisor.</p>
-    <label class="modal-label">Share this link</label>
-    <input type="text" id="shareLinkInput" class="modal-input" readonly>
+    <h3>Cross-device sync</h3>
+    <p class="modal-p">This page is running outside Claude, so it saves to a private <b>GitHub Gist</b> on your own account instead — no third-party service needed.</p>
+    <ol class="modal-steps">
+      <li>Create a token at <a href="https://github.com/settings/tokens/new?scopes=gist&description=Internship%20Quest%20Sync" target="_blank" rel="noopener">github.com/settings/tokens</a> with just the <b>gist</b> scope checked.</li>
+      <li>Paste it below and hit Connect. On your first device this creates a private gist; copy the Gist ID it gives you.</li>
+      <li>On every other device, paste the <b>same token</b> and that <b>same Gist ID</b> before connecting, so they all point at one place.</li>
+    </ol>
+    <label class="modal-label">Personal access token</label>
+    <input type="password" id="syncTokenInput" class="modal-input" placeholder="ghp_…">
+    <label class="modal-label">Gist ID <span style="opacity:0.6; font-weight:400;">(leave blank on your first device)</span></label>
+    <input type="text" id="syncGistInput" class="modal-input" placeholder="e.g. a1b2c3d4e5f6…">
     <div class="modal-row">
-      <button class="modal-btn primary" id="shareLinkCopyBtn">Copy link</button>
-      <button class="modal-btn" id="shareLinkCloseBtn">Close</button>
+      <button class="modal-btn primary" id="syncConnectBtn">Connect</button>
+      <button class="modal-btn" id="syncDisconnectBtn">Disconnect</button>
+      <button class="modal-btn" id="syncCloseBtn">Close</button>
     </div>
-    <div class="modal-msg" id="shareLinkMsg"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="deviceLinkModal">
-  <div class="modal glass">
-    <h3>Use on another device</h3>
-    <p class="modal-p">There's no login here — instead, this tracker is tied to a private <b>Tracker ID</b>. To see the same data on another phone or browser, copy this ID and paste it in on that device.</p>
-    <label class="modal-label">This tracker's ID</label>
-    <input type="text" id="myTrackerIdInput" class="modal-input" readonly>
-    <div class="modal-row"><button class="modal-btn primary" id="copyTrackerIdBtn">Copy ID</button></div>
-    <label class="modal-label" style="margin-top:16px;">Already have a Tracker ID from another device?</label>
-    <input type="text" id="linkTrackerIdInput" class="modal-input" placeholder="Paste an existing Tracker ID">
-    <div class="modal-row">
-      <button class="modal-btn primary" id="linkTrackerIdBtn">Switch to that tracker</button>
-      <button class="modal-btn" id="deviceLinkCloseBtn">Close</button>
-    </div>
-    <div class="modal-msg" id="deviceLinkMsg"></div>
+    <div class="modal-msg" id="syncModalMsg"></div>
   </div>
 </div>
 
@@ -534,6 +439,7 @@
 <script>
 const START_ISO = '2026-08-03';
 const START_WEEK_NUM = 32;
+const STORAGE_KEY = 'tracker-state-v3';
 const XP_PER_TASK = 10;
 const XP_PER_LEVEL = 200;
 const WEEK_CLEAR_BONUS = 50;
@@ -550,7 +456,6 @@ const SKILL_TIERS = [
 
 let state = null;
 let currentWeekId = null;
-let weeklyFilter = 'all';
 
 function fmtDate(d){ return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }); }
 function fmtDateFull(d){ return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
@@ -568,7 +473,7 @@ function makeWeek(index){
   return {
     id:'w'+(START_WEEK_NUM+index), weekNum: START_WEEK_NUM+index,
     start: isoOf(startD), end: isoOf(addDays(isoOf(startD),6)),
-    days, cleared:false, reflection: { did:'', learned:'' }, weeklyTasks: []
+    days, cleared:false, reflection: { did:'', learned:'' }
   };
 }
 function defaultState(){
@@ -579,61 +484,127 @@ function defaultState(){
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
-// ===== Firebase setup =====
-// Fill in your own Firebase project's config here (Project settings > General > Your apps > Web app).
-// These values are safe to expose publicly — real security lives in the Database Rules.
-const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT"
-};
-
-firebase.initializeApp(FIREBASE_CONFIG);
-const db = firebase.database();
-
+const USING_CLAUDE_STORAGE = (typeof window.storage !== 'undefined' && window.storage !== null);
 const LOCAL_CACHE_KEY = 'internship-quest-cache-v1';
-const TRACKER_ID_KEY = 'internship-quest-tracker-id';
-
-function getOrCreateTrackerId(){
-  let id = localStorage.getItem(TRACKER_ID_KEY);
-  if(!id){
-    id = 'trk-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
-    localStorage.setItem(TRACKER_ID_KEY, id);
-  }
-  return id;
-}
-
-let trackerId = getOrCreateTrackerId();
-let supervisorTasks = {};      // legacy per-day supervisor tasks (kept for backward compatibility, no longer added to)
-let supervisorWeeklyTasks = {};
-let comments = {};
-let stateListenerRef = null;
-let supTasksListenerRef = null;
-let supWeeklyListenerRef = null;
-let commentsListenerRef = null;
+const SYNC_TOKEN_KEY = 'internship-quest-sync-token';
+const SYNC_GIST_KEY = 'internship-quest-sync-gist';
+const GIST_FILENAME = 'internship-quest-data.json';
 
 function setSyncStatus(mode){
   const dot = document.getElementById('syncDot');
   const text = document.getElementById('syncText');
   if(!dot || !text) return;
-  const classes = { syncing:'syncing', error:'error' };
+  const classes = { syncing:'syncing', error:'error', local:'local' };
   dot.className = 'sync-dot' + (classes[mode] ? ' ' + classes[mode] : '');
-  const labels = { syncing:'Saving…', error:'Connection issue — retrying…', ok:'Synced live' };
+  const labels = {
+    syncing: 'Saving…',
+    error: 'Not synced — retrying…',
+    local: 'Saved on this device only',
+    ok: USING_CLAUDE_STORAGE ? 'Synced to your account' : 'Synced across your devices'
+  };
   text.textContent = labels[mode] || labels.ok;
 }
 
+async function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// Retries a storage call a few times before giving up, so a brief network
+// hiccup never gets treated the same as "no data has ever been saved".
+async function withRetry(fn, attempts = 4){
+  let lastErr;
+  for(let i=0;i<attempts;i++){
+    try{ return await fn(); }
+    catch(e){ lastErr = e; if(i < attempts-1) await sleep(350 * (i+1)); }
+  }
+  throw lastErr;
+}
+
+function getSyncConfig(){
+  return { token: localStorage.getItem(SYNC_TOKEN_KEY) || '', gistId: localStorage.getItem(SYNC_GIST_KEY) || '' };
+}
+function setSyncConfig(token, gistId){
+  if(token) localStorage.setItem(SYNC_TOKEN_KEY, token); else localStorage.removeItem(SYNC_TOKEN_KEY);
+  if(gistId) localStorage.setItem(SYNC_GIST_KEY, gistId); else localStorage.removeItem(SYNC_GIST_KEY);
+}
 function getLocalCache(){
   try{ const raw = localStorage.getItem(LOCAL_CACHE_KEY); return raw ? JSON.parse(raw) : null; }
   catch(e){ return null; }
 }
+function setLocalCache(obj){
+  try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(obj)); } catch(e){ console.warn('localStorage write failed', e); }
+}
+
+async function gistPull(token, gistId){
+  const res = await fetch('https://api.github.com/gists/' + gistId, {
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
+  });
+  if(!res.ok) throw new Error('Gist read failed (' + res.status + ')');
+  const data = await res.json();
+  const file = data.files && data.files[GIST_FILENAME];
+  if(!file || !file.content) throw new Error('No tracker data in that gist yet');
+  return JSON.parse(file.content);
+}
+async function gistPush(token, gistId, obj){
+  const body = { files: {} };
+  body.files[GIST_FILENAME] = { content: JSON.stringify(obj, null, 2) };
+  let url = 'https://api.github.com/gists';
+  let method = 'POST';
+  if(gistId){ url += '/' + gistId; method = 'PATCH'; }
+  else { body.description = 'Internship Quest tracker data'; body.public = false; }
+  const res = await fetch(url, {
+    method,
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('Gist write failed (' + res.status + ')');
+  const data = await res.json();
+  return data.id;
+}
+
+async function loadState(){
+  let loadedExisting = false;
+
+  if(USING_CLAUDE_STORAGE){
+    try{
+      const res = await withRetry(() => window.storage.get(STORAGE_KEY, false));
+      if(res && res.value){ state = JSON.parse(res.value); loadedExisting = true; }
+    } catch(e){
+      // Genuinely no data yet, or the read failed even after retries — either way,
+      // do not write a blank state over anything that might already exist.
+      console.warn('No existing data found, or read failed after retries:', e);
+    }
+  } else {
+    // Deployed outside Claude: start from whatever is cached in this browser,
+    // then try to pull the authoritative copy from the linked GitHub Gist.
+    const cached = getLocalCache();
+    if(cached){ state = cached; loadedExisting = true; }
+    const { token, gistId } = getSyncConfig();
+    if(token && gistId){
+      try{
+        setSyncStatus('syncing');
+        const remote = await withRetry(() => gistPull(token, gistId));
+        state = remote;
+        loadedExisting = true;
+        setLocalCache(state);
+        setSyncStatus('ok');
+      } catch(e){
+        console.warn('Cloud sync pull failed, using this device local copy instead:', e);
+        setSyncStatus('error');
+      }
+    }
+  }
+
+  if(!loadedExisting) state = defaultState();
+
+  applyMigrations();
+
+  // Only write back automatically when we're touching real, previously-saved
+  // data (to persist the date fix) or a fresh brand-new tracker. A failed read
+  // is left untouched so a later successful load can't be clobbered.
+  if(loadedExisting) await saveState();
+}
 
 function applyMigrations(){
-  if(!Array.isArray(state.skills)) state.skills = [];
-  state.weeks.forEach(w => {
-    if(!w.reflection) w.reflection = { did:'', learned:'' };
-    if(!Array.isArray(w.weeklyTasks)) w.weeklyTasks = [];
-  });
+  state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
   state.weeks.forEach(w => {
     const startD = addDays(START_ISO, (w.weekNum - START_WEEK_NUM) * 7);
     w.start = isoOf(startD);
@@ -642,75 +613,36 @@ function applyMigrations(){
   });
 }
 
-function attachListeners(){
-  detachListeners();
-
-  stateListenerRef = db.ref('trackers/' + trackerId + '/state');
-  stateListenerRef.on('value', (snap) => {
-    const val = snap.val();
-    if(val){
-      state = val;
-      applyMigrations();
-    } else {
-      const cached = getLocalCache();
-      state = cached || defaultState();
-      applyMigrations();
-      stateListenerRef.set(state);
-    }
-    ensureCurrentWeek();
-    renderAll();
-  }, (err) => { console.error('State listener error', err); setSyncStatus('error'); });
-
-  supTasksListenerRef = db.ref('trackers/' + trackerId + '/supervisorTasks');
-  supTasksListenerRef.on('value', (snap) => {
-    supervisorTasks = snap.val() || {};
-    if(state) { renderTasksView(); renderTopbar(); }
-  });
-
-  supWeeklyListenerRef = db.ref('trackers/' + trackerId + '/supervisorWeeklyTasks');
-  supWeeklyListenerRef.on('value', (snap) => {
-    supervisorWeeklyTasks = snap.val() || {};
-    if(state) { renderTasksView(); renderTopbar(); }
-  });
-
-  commentsListenerRef = db.ref('trackers/' + trackerId + '/comments');
-  commentsListenerRef.on('value', (snap) => {
-    comments = snap.val() || {};
-    renderComments();
-  });
-}
-
-function detachListeners(){
-  if(stateListenerRef) stateListenerRef.off();
-  if(supTasksListenerRef) supTasksListenerRef.off();
-  if(supWeeklyListenerRef) supWeeklyListenerRef.off();
-  if(commentsListenerRef) commentsListenerRef.off();
-}
-
-function ensureCurrentWeek(){
-  if(currentWeekId && state.weeks.some(w => w.id === currentWeekId)) return;
-  const today = isoOf(new Date());
-  const match = state.weeks.find(w => today >= w.start && today <= w.end);
-  currentWeekId = (match || state.weeks[0]).id;
-}
-
 async function saveState(){
+  if(USING_CLAUDE_STORAGE){
+    setSyncStatus('syncing');
+    try{
+      await withRetry(() => window.storage.set(STORAGE_KEY, JSON.stringify(state), false));
+      setSyncStatus('ok');
+    } catch(e){
+      console.error('Save failed after retries', e);
+      setSyncStatus('error');
+    }
+    return;
+  }
+
+  // Deployed outside Claude: always cache locally first (instant, never fails),
+  // then push to the linked GitHub Gist if cross-device sync is configured.
+  setLocalCache(state);
+  const { token, gistId } = getSyncConfig();
+  if(!token){ setSyncStatus('local'); return; }
   setSyncStatus('syncing');
   try{
-    await db.ref('trackers/' + trackerId + '/state').set(state);
+    const newId = await withRetry(() => gistPush(token, gistId, state));
+    if(!gistId) setSyncConfig(token, newId);
     setSyncStatus('ok');
   } catch(e){
-    console.error('Save failed', e);
+    console.error('Cloud sync push failed after retries', e);
     setSyncStatus('error');
   }
 }
 function currentWeek(){ return state.weeks.find(w => w.id === currentWeekId); }
 function allTasksOfWeek(w){ return w.days.flatMap(d => d.tasks); }
-function supWeeklyForWeek(w){
-  return Object.entries(supervisorWeeklyTasks || {})
-    .filter(([id, t]) => t.weekId === w.id)
-    .map(([id, t]) => ({ id, ...t }));
-}
 function buildDateIndex(){
   const idx = {};
   state.weeks.forEach(w => {
@@ -723,12 +655,9 @@ function computeXP(){
   let xp = 0;
   state.weeks.forEach(w => {
     xp += allTasksOfWeek(w).filter(t=>t.done).length * XP_PER_TASK;
-    xp += (w.weeklyTasks||[]).filter(t=>t.done).length * XP_PER_TASK;
     if(w.cleared) xp += WEEK_CLEAR_BONUS;
   });
   state.skills.forEach(s => { xp += s.entries.length * XP_PER_ENTRY; });
-  xp += Object.values(supervisorTasks || {}).filter(t => t.done).length * XP_PER_TASK;
-  xp += Object.values(supervisorWeeklyTasks || {}).filter(t => t.done).length * XP_PER_TASK;
   return xp;
 }
 function computeStreak(){
@@ -783,11 +712,8 @@ function renderWeekList(){
 }
 
 function weekStats(w){
-  const dayTasks = allTasksOfWeek(w);
-  const weeklyOwn = w.weeklyTasks || [];
-  const weeklySup = supWeeklyForWeek(w);
-  const total = dayTasks.length + weeklyOwn.length + weeklySup.length;
-  const done = dayTasks.filter(t=>t.done).length + weeklyOwn.filter(t=>t.done).length + weeklySup.filter(t=>t.done).length;
+  const tasks = allTasksOfWeek(w);
+  const total = tasks.length, done = tasks.filter(t=>t.done).length;
   const pct = total ? Math.round((done/total)*100) : 0;
   return { total, done, pct };
 }
@@ -815,70 +741,6 @@ function showToast(t1, t2){
   toastTimer = setTimeout(()=> toast.classList.remove('show'), 3200);
 }
 
-function renderWeeklyTasks(){
-  const w = currentWeek();
-  if(!w) return;
-  const own = (w.weeklyTasks||[]).map(t => ({...t, _kind:'own'}));
-  const sup = supWeeklyForWeek(w).map(t => ({...t, _kind:'sup'}));
-  let merged = [...own, ...sup];
-
-  document.getElementById('weeklyCount').textContent = merged.length;
-
-  if(weeklyFilter === 'pending') merged = merged.filter(t => !t.done);
-  else if(weeklyFilter === 'completed') merged = merged.filter(t => t.done);
-
-  const order = {high:0, medium:1, low:2};
-  merged.sort((a,b) => order[a.priority||'medium']-order[b.priority||'medium']);
-
-  const box = document.getElementById('weeklyTaskList');
-  const today = isoOf(new Date());
-  if(merged.length === 0){
-    box.innerHTML = '<div class="empty">No tasks match this filter.</div>';
-    return;
-  }
-  box.innerHTML = merged.map(t => {
-    const overdue = t.deadline && t.deadline < today && !t.done;
-    return `
-      <div class="wk-task${t.done?' done':''}${t._kind==='sup'?' sup':''}">
-        <span class="check" data-id="${t.id}" data-kind="${t._kind}"></span>
-        <div class="body">
-          <span class="txt" data-id="${t.id}" data-kind="${t._kind}">${escapeHtml(t.text)}</span>
-          <div class="meta">
-            <span class="pri-tag pri-${t.priority||'medium'}">${t.priority||'medium'}</span>
-            ${t.deadline ? `<span class="deadline-tag${overdue?' overdue':''}">${overdue?'overdue · ':''}due ${fmtDate(new Date(t.deadline+'T00:00:00'))}</span>` : ''}
-            <span class="status-tag ${t.done?'completed':'pending'}">${t.done?'completed':'pending'}</span>
-            ${t._kind==='sup' ? '<span class="sup-tag">👤 supervisor</span>' : ''}
-          </div>
-        </div>
-        <button class="del" data-id="${t.id}" data-kind="${t._kind}">×</button>
-      </div>`;
-  }).join('');
-
-  box.querySelectorAll('[data-id]').forEach(el => {
-    el.addEventListener('click', async (e) => {
-      const id = e.currentTarget.dataset.id;
-      const kind = e.currentTarget.dataset.kind;
-      const isDel = e.currentTarget.classList.contains('del');
-      const isCheck = e.currentTarget.classList.contains('check') || e.currentTarget.classList.contains('txt');
-      if(!isDel && !isCheck) return;
-      if(kind === 'sup'){
-        if(isDel) db.ref('trackers/' + trackerId + '/supervisorWeeklyTasks/' + id).remove();
-        else if(isCheck){ const t = supervisorWeeklyTasks[id]; if(t) db.ref('trackers/' + trackerId + '/supervisorWeeklyTasks/' + id + '/done').set(!t.done); }
-        return;
-      }
-      if(isDel){
-        w.weeklyTasks = w.weeklyTasks.filter(t => t.id !== id);
-      } else if(isCheck){
-        const t = w.weeklyTasks.find(t => t.id === id);
-        if(t) t.done = !t.done;
-      }
-      maybeMarkCleared(w);
-      await saveState();
-      renderAll();
-    });
-  });
-}
-
 function renderTasksView(){
   const w = currentWeek();
   if(!w) return;
@@ -891,8 +753,6 @@ function renderTasksView(){
   document.getElementById('clearedPill').style.display = w.cleared ? 'inline-block' : 'none';
   document.getElementById('didArea').value = w.reflection.did || '';
   document.getElementById('learnedArea').value = w.reflection.learned || '';
-
-  renderWeeklyTasks();
 
   const grid = document.getElementById('dayGrid');
   grid.innerHTML = '';
@@ -952,20 +812,6 @@ function renderTasksView(){
       });
     }
 
-    listBox.addEventListener('click', async (e) => {
-      const id = e.target.dataset.id;
-      if(!id) return;
-      if(e.target.classList.contains('del')){
-        day.tasks = day.tasks.filter(t => t.id !== id);
-      } else if(e.target.classList.contains('check') || e.target.classList.contains('txt')){
-        const t = day.tasks.find(t => t.id === id);
-        if(t) t.done = !t.done;
-      } else { return; }
-      maybeMarkCleared(w);
-      await saveState();
-      renderAll();
-    });
-
     card.querySelector('.ti-add').addEventListener('click', async () => {
       const textInput = card.querySelector('.ti-text');
       const text = textInput.value.trim();
@@ -980,6 +826,20 @@ function renderTasksView(){
       renderAll();
     });
     card.querySelector('.ti-text').addEventListener('keydown', e => { if(e.key==='Enter') card.querySelector('.ti-add').click(); });
+
+    listBox.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      if(!id) return;
+      if(e.target.classList.contains('del')){
+        day.tasks = day.tasks.filter(t => t.id !== id);
+      } else if(e.target.classList.contains('check') || e.target.classList.contains('txt')){
+        const t = day.tasks.find(t => t.id === id);
+        if(t) t.done = !t.done;
+      } else { return; }
+      maybeMarkCleared(w);
+      await saveState();
+      renderAll();
+    });
 
     grid.appendChild(card);
   });
@@ -1039,7 +899,7 @@ let monthCursor = new Date(new Date(isoOf(new Date())+'T00:00:00').getFullYear()
 
 function startOfCalendarGrid(monthDate){
   const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-  const dow = (first.getDay() + 6) % 7;
+  const dow = (first.getDay() + 6) % 7; // Monday=0
   const start = new Date(first);
   start.setDate(first.getDate() - dow);
   return start;
@@ -1112,13 +972,8 @@ function renderDeadlineList(){
         }
       });
     });
-    (w.weeklyTasks||[]).forEach(t => {
-      if(t.deadline && !t.done){
-        items.push({ date: t.deadline, time: '', priority: t.priority, text: t.text, weekId: w.id });
-      }
-    });
   });
-  items.sort((a,b) => (a.date+'T'+(a.time||'00:00')).localeCompare(b.date+'T'+(b.time||'00:00')));
+  items.sort((a,b) => (a.date+'T'+a.time).localeCompare(b.date+'T'+b.time));
   const box = document.getElementById('deadlineList');
   box.innerHTML = '';
   if(items.length === 0){
@@ -1134,7 +989,7 @@ function renderDeadlineList(){
       <span class="dl-dot dot-${it.priority}"></span>
       <div class="dl-body">
         <div class="dl-text">${escapeHtml(it.text)}</div>
-        <div class="dl-time">${it.time || 'no set time'}${overdue ? ' · overdue' : ''}</div>
+        <div class="dl-time">${it.time}${overdue ? ' · overdue' : ''}</div>
       </div>`;
     row.addEventListener('click', () => {
       currentWeekId = it.weekId;
@@ -1148,34 +1003,6 @@ function renderDeadlineList(){
   });
 }
 
-function renderComments(){
-  const box = document.getElementById('commentListBox');
-  if(!box) return;
-  const list = Object.entries(comments || {}).map(([id, c]) => ({ id, ...c }));
-  list.sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
-  document.getElementById('commentCount').textContent = list.length;
-  if(list.length === 0){
-    box.innerHTML = '<div class="empty">No comments yet. Your supervisor can leave one from the shared link.</div>';
-    return;
-  }
-  box.innerHTML = list.map(c => `
-    <div class="comment">
-      <div class="cavatar">👤</div>
-      <div class="cbody">
-        <div class="cmeta">${c.weekNum ? 'On Week ' + c.weekNum + ' · ' : ''}${c.createdAt ? new Date(c.createdAt).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : ''}</div>
-        <div class="ctext">${escapeHtml(c.text || '')}</div>
-      </div>
-      <button class="cdel" data-id="${c.id}">×</button>
-    </div>
-  `).join('');
-}
-document.getElementById('commentListBox').addEventListener('click', (e) => {
-  const id = e.target.dataset.id;
-  if(!id || !e.target.classList.contains('cdel')) return;
-  if(!confirm('Delete this comment?')) return;
-  db.ref('trackers/' + trackerId + '/comments/' + id).remove();
-});
-
 function renderAll(){
   renderTopbar();
   renderWeekList();
@@ -1183,7 +1010,6 @@ function renderAll(){
   renderSkillsView();
   renderCalendar();
   renderDeadlineList();
-  renderWeeklyTasks();
 }
 
 document.querySelectorAll('.side-tab').forEach(btn => {
@@ -1217,27 +1043,6 @@ document.getElementById('addWeek').addEventListener('click', async ()=>{
   await saveState();
   renderAll();
 });
-
-document.getElementById('weeklyFilter').addEventListener('change', (e) => {
-  weeklyFilter = e.target.value;
-  renderWeeklyTasks();
-});
-document.getElementById('weeklyAddBtn').addEventListener('click', async () => {
-  const w = currentWeek();
-  if(!w) return;
-  const textInput = document.getElementById('weeklyText');
-  const text = textInput.value.trim();
-  if(!text) return;
-  const priority = document.getElementById('weeklyPriority').value;
-  const deadline = document.getElementById('weeklyDeadline').value;
-  w.weeklyTasks.push({ id: uid(), text, priority, deadline, done:false });
-  textInput.value = '';
-  document.getElementById('weeklyDeadline').value = '';
-  maybeMarkCleared(w);
-  await saveState();
-  renderAll();
-});
-document.getElementById('weeklyText').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('weeklyAddBtn').click(); });
 
 let reflectTimer;
 function bindReflection(){
@@ -1319,9 +1124,13 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
     }
     if(!confirm('Import this backup? It will replace everything currently in this tracker.')) return;
     state = parsed;
+    if(!Array.isArray(state.skills)) state.skills = [];
     applyMigrations();
     await saveState();
-    ensureCurrentWeek();
+    currentWeekId = state.weeks[0] ? state.weeks[0].id : null;
+    const today = isoOf(new Date());
+    const match = state.weeks.find(w => today >= w.start && today <= w.end);
+    if(match) currentWeekId = match.id;
     renderAll();
     showImportResult('Backup imported', 'Your tracker data has been restored from the backup file.');
   } catch(err){
@@ -1330,55 +1139,63 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   }
 });
 
-function openShareLinkModal(link){
-  document.getElementById('shareLinkInput').value = link;
-  document.getElementById('shareLinkMsg').textContent = '';
-  document.getElementById('shareLinkModal').classList.add('show');
+function openSyncModal(){
+  const { token, gistId } = getSyncConfig();
+  document.getElementById('syncTokenInput').value = token;
+  document.getElementById('syncGistInput').value = gistId;
+  document.getElementById('syncModalMsg').textContent = '';
+  document.getElementById('syncModalMsg').className = 'modal-msg';
+  document.getElementById('syncModal').classList.add('show');
 }
-document.getElementById('shareLinkCloseBtn').addEventListener('click', () => {
-  document.getElementById('shareLinkModal').classList.remove('show');
-});
-document.getElementById('shareLinkCopyBtn').addEventListener('click', async () => {
-  const input = document.getElementById('shareLinkInput');
-  input.select();
+function closeSyncModal(){ document.getElementById('syncModal').classList.remove('show'); }
+
+const syncSetupLink = document.getElementById('syncSetupLink');
+if(!USING_CLAUDE_STORAGE){
+  syncSetupLink.style.display = 'inline';
+  syncSetupLink.addEventListener('click', openSyncModal);
+} else {
+  document.getElementById('syncModal').remove();
+}
+
+document.getElementById('syncCloseBtn')?.addEventListener('click', closeSyncModal);
+document.getElementById('syncModal')?.addEventListener('click', (e) => { if(e.target.id === 'syncModal') closeSyncModal(); });
+
+document.getElementById('syncConnectBtn')?.addEventListener('click', async () => {
+  const token = document.getElementById('syncTokenInput').value.trim();
+  const gistIdInput = document.getElementById('syncGistInput').value.trim();
+  const msg = document.getElementById('syncModalMsg');
+  if(!token){ msg.textContent = 'Paste a personal access token first.'; msg.className = 'modal-msg err'; return; }
+  msg.textContent = 'Connecting…'; msg.className = 'modal-msg';
   try{
-    await navigator.clipboard.writeText(input.value);
-    document.getElementById('shareLinkMsg').textContent = 'Copied!';
+    if(gistIdInput){
+      // Linking to an existing gist from another device — pull it in as the source of truth.
+      const remote = await gistPull(token, gistIdInput);
+      setSyncConfig(token, gistIdInput);
+      state = remote;
+      state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
+      setLocalCache(state);
+      msg.textContent = 'Connected — pulled your existing data in.'; msg.className = 'modal-msg ok';
+    } else {
+      // First device — create a brand-new gist from what's on this device right now.
+      const newId = await gistPush(token, '', state);
+      setSyncConfig(token, newId);
+      document.getElementById('syncGistInput').value = newId;
+      msg.textContent = 'Connected — Gist ID: ' + newId + ' (copy this to your other devices).'; msg.className = 'modal-msg ok';
+    }
+    setSyncStatus('ok');
+    renderAll();
   } catch(e){
-    document.getElementById('shareLinkMsg').textContent = 'Select the text above and copy it manually.';
+    msg.textContent = 'Could not connect: ' + e.message; msg.className = 'modal-msg err';
   }
 });
-document.getElementById('publishBtn').addEventListener('click', () => {
-  const base = location.href.split('?')[0].replace(/[^/]*$/, '');
-  const link = base + 'report.html?tracker=' + trackerId;
-  openShareLinkModal(link);
-});
 
-document.getElementById('deviceLinkBtn').addEventListener('click', () => {
-  document.getElementById('myTrackerIdInput').value = trackerId;
-  document.getElementById('linkTrackerIdInput').value = '';
-  document.getElementById('deviceLinkMsg').textContent = '';
-  document.getElementById('deviceLinkMsg').className = 'modal-msg';
-  document.getElementById('deviceLinkModal').classList.add('show');
-});
-document.getElementById('deviceLinkCloseBtn').addEventListener('click', () => {
-  document.getElementById('deviceLinkModal').classList.remove('show');
-});
-document.getElementById('copyTrackerIdBtn').addEventListener('click', async () => {
-  const input = document.getElementById('myTrackerIdInput');
-  input.select();
-  try{ await navigator.clipboard.writeText(input.value); document.getElementById('deviceLinkMsg').textContent = 'Copied!'; document.getElementById('deviceLinkMsg').className = 'modal-msg ok'; }
-  catch(e){ document.getElementById('deviceLinkMsg').textContent = 'Select the text above and copy it manually.'; }
-});
-document.getElementById('linkTrackerIdBtn').addEventListener('click', () => {
-  const newId = document.getElementById('linkTrackerIdInput').value.trim();
-  const msg = document.getElementById('deviceLinkMsg');
-  if(!newId){ msg.textContent = 'Paste a Tracker ID first.'; msg.className = 'modal-msg err'; return; }
-  if(!confirm('Switch this device to Tracker ID "' + newId + '"? This device will now show that tracker\'s data instead.')) return;
-  trackerId = newId;
-  localStorage.setItem(TRACKER_ID_KEY, trackerId);
-  document.getElementById('deviceLinkModal').classList.remove('show');
-  attachListeners();
+document.getElementById('syncDisconnectBtn')?.addEventListener('click', () => {
+  setSyncConfig('', '');
+  document.getElementById('syncTokenInput').value = '';
+  document.getElementById('syncGistInput').value = '';
+  const msg = document.getElementById('syncModalMsg');
+  msg.textContent = 'Disconnected. Saving to this device only from now on.'; msg.className = 'modal-msg';
+  setSyncStatus('local');
 });
 
 function spawnBubbles(){
@@ -1396,8 +1213,14 @@ function spawnBubbles(){
   });
 }
 
-spawnBubbles();
-attachListeners();
+(async function init(){
+  spawnBubbles();
+  await loadState();
+  const today = isoOf(new Date());
+  const match = state.weeks.find(w => today >= w.start && today <= w.end);
+  currentWeekId = (match || state.weeks[0]).id;
+  renderAll();
+})();
 </script>
 </body>
 </html>
