@@ -6,6 +6,7 @@
 <title>Internship Quest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --rose: #ECA6C4; --rose-deep: #D9769E;
@@ -66,7 +67,7 @@
   .layout{ display:flex; gap:20px; align-items:flex-start; }
 
   /* Path / map sidebar */
-  .week-rail{ width: 250px; flex-shrink:0; padding: 18px 12px; max-height: 720px; overflow-y:auto; }
+  .week-rail{ width: 270px; flex-shrink:0; padding: 18px 12px; max-height: 900px; overflow-y:auto; }
   .week-rail::-webkit-scrollbar{ width:5px; }
   .week-rail::-webkit-scrollbar-thumb{ background: rgba(150,110,160,0.3); border-radius:4px; }
   .week-rail h3{ font-family:'Quicksand'; font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color: var(--ink-soft); margin: 2px 6px 14px; }
@@ -133,6 +134,45 @@
   .add-week-btn{ width:100%; margin-top:8px; padding:9px; border-radius:14px; cursor:pointer; background: rgba(255,255,255,0.25); border:1px dashed rgba(150,110,160,0.4); font-family:'Quicksand'; font-weight:600; font-size:12px; color: var(--ink-soft); }
   .add-week-btn:hover{ background: rgba(255,255,255,0.4); color: var(--amethyst-deep); }
 
+  /* Weekly tasks panel — left sidebar, below Map/Calendar */
+  .wk-panel{ margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(150,110,160,0.18); }
+  .wk-panel h3{ font-family:'Quicksand'; font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color: var(--ink-soft); margin: 2px 6px 10px; display:flex; align-items:center; justify-content:space-between; }
+  .wk-panel h3 .wk-sub{ font-family:'JetBrains Mono'; font-size:9px; text-transform:none; letter-spacing:0; color: var(--ink-soft); opacity:0.8; }
+  .wk-add{ padding: 0 4px; margin-bottom: 10px; display:flex; flex-direction:column; gap:6px; }
+  .wk-add input[type=text]{
+    border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:8px 10px; font-family:'Inter'; font-size:12px; border-radius: 10px; color: var(--ink);
+  }
+  .wk-add-row2{ display:flex; gap:6px; }
+  .wk-add select, .wk-add input[type=date]{
+    border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.55); padding:6px 7px; font-family:'JetBrains Mono'; font-size:10px; border-radius: 10px; color: var(--ink); flex:1; min-width:0;
+  }
+  .wk-add button{
+    background: linear-gradient(135deg, var(--rose), var(--amethyst)); color:#fff; border:none; padding: 8px 10px; font-family:'Quicksand'; font-weight:700; font-size:12px; border-radius: 10px; cursor:pointer;
+  }
+  .wk-filter{
+    width: calc(100% - 8px); margin: 0 4px 10px; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.4);
+    padding:6px 10px; font-family:'JetBrains Mono'; font-size:10.5px; border-radius: 10px; color: var(--ink);
+  }
+  .wk-list{ padding: 0 4px; }
+  .wk-item{
+    padding: 9px 10px; margin-bottom:7px; border-radius:12px; background: rgba(255,255,255,0.3); border:1px solid rgba(255,255,255,0.4);
+  }
+  .wk-item.bs-completed{ background: rgba(143,220,196,0.22); border-color: rgba(92,190,158,0.35); }
+  .wk-item.bs-completed .wk-text{ text-decoration: line-through; color: var(--ink-soft); }
+  .wk-item.overdue{ border-color: rgba(204,102,80,0.4); }
+  .wk-text{ font-size:12.5px; word-break:break-word; margin-bottom:6px; }
+  .wk-meta{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:7px; }
+  .wk-deadline-tag{ font-family:'JetBrains Mono'; font-size:8.5px; color: var(--ink-soft); background: rgba(150,110,160,0.12); padding:2px 7px; border-radius:10px; }
+  .wk-deadline-tag.overdue{ color: var(--coral-deep); background: rgba(232,145,126,0.25); }
+  .wk-item-row2{ display:flex; gap:6px; align-items:center; }
+  .wk-status-select{
+    flex:1; border:1px solid rgba(150,110,160,0.25); background: rgba(255,255,255,0.6); padding:5px 7px;
+    font-family:'JetBrains Mono'; font-size:10px; border-radius:8px; color: var(--ink);
+  }
+  .wk-del{ background:none; border:none; color: var(--rose-deep); font-size:15px; cursor:pointer; opacity:0.55; flex-shrink:0; padding: 0 4px; }
+  .wk-del:hover{ opacity:1; }
+  .wk-empty{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); padding: 6px 6px; }
+
   .panel{ flex:1; min-width:0; }
   .view{ display:none; }
   .view.active{ display:block; }
@@ -146,7 +186,7 @@
   .week-pct{ font-family:'JetBrains Mono'; font-size:11px; color: var(--ink-soft); }
   .cleared-pill{ font-family:'Quicksand'; font-weight:700; font-size:11.5px; color: #fff; background: linear-gradient(135deg, var(--mint-deep), var(--mint)); padding:5px 12px; border-radius:20px; }
 
-  .day-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap:14px; }
+  .day-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px; }
   .day-card{ padding: 14px 15px; }
   .day-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
   .day-head .dname{ font-family:'Quicksand'; font-weight:700; font-size:13.5px; }
@@ -184,6 +224,41 @@
   .mini-task .del{ background:none; border:none; color: var(--rose-deep); font-size:15px; cursor:pointer; opacity:0.5; flex-shrink:0; }
   .mini-task .del:hover{ opacity:1; }
   .day-empty{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); padding: 6px 2px; }
+
+  /* ===== Two-column quest layout: daily grid + reflection on the left, task board on the right ===== */
+  .quest-columns{ display:flex; gap:16px; align-items:flex-start; }
+  .quest-main{ flex:1 1 0; min-width:0; }
+  .quest-side{ width: 320px; flex-shrink:0; position:sticky; top:16px; }
+  @media (max-width: 1100px){
+    .quest-columns{ flex-direction:column; }
+    .quest-side{ width:100%; position:static; }
+  }
+
+  .board-card{ padding: 18px 18px 16px; }
+  .attach-row{ display:flex; gap:6px; align-items:center; }
+  .attach-row input[type=url]{ flex:1; }
+  .attach-file-btn{
+    background: rgba(255,255,255,0.4); border:1px solid rgba(150,110,160,0.3); color: var(--ink-soft);
+    font-family:'JetBrains Mono'; font-size:10px; padding:8px 10px; border-radius:10px; cursor:pointer; white-space:nowrap; flex-shrink:0;
+  }
+  .attach-file-btn:hover{ background: rgba(255,255,255,0.6); }
+  .attach-chip{
+    display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono'; font-size:9.5px; color: var(--amethyst-deep);
+    background: rgba(169,139,219,0.18); padding:3px 8px; border-radius:8px; max-width:100%; text-decoration:none; cursor:pointer;
+  }
+  .attach-chip .x{ cursor:pointer; opacity:0.6; }
+  .attach-chip .x:hover{ opacity:1; }
+
+  .wk-item{ border-left: 3px solid var(--ink-soft); }
+  .wk-item.bs-pending{ border-left-color: var(--ink-soft); }
+  .wk-item.bs-started{ border-left-color: var(--amethyst-deep); }
+  .wk-item.bs-in_progress{ border-left-color: var(--amber-deep); }
+  .wk-item.bs-completed{ border-left-color: var(--mint-deep); }
+  .wk-item.bs-procrastinated{ border-left-color: var(--coral-deep); }
+  .wk-item.bs-stuck{ border-left-color: var(--coral-deep); }
+  .wk-item.bs-review{ border-left-color: var(--amethyst-deep); }
+  .wk-item.bs-ghosted{ border-left-color: var(--ink-soft); opacity:0.65; }
+
 
   .card{ padding: 20px 24px; margin-bottom: 16px; }
   .card-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
@@ -355,18 +430,54 @@
           </div>
         </div>
 
-        <div class="day-grid" id="dayGrid"></div>
+        <div class="quest-columns">
+          <div class="quest-main">
+            <div class="day-grid" id="dayGrid"></div>
 
-        <div class="card glass" style="margin-top:16px;">
-          <div class="card-head"><h3>Week reflection</h3><span class="reflect-saved" id="reflectSaved">Saved</span></div>
-          <div class="reflect-grid">
-            <div class="reflect-block">
-              <label>📝 What I did</label>
-              <textarea class="reflect-area" id="didArea" placeholder="Summarize the work you got through this week…"></textarea>
+            <div class="card glass" style="margin-top:16px;">
+              <div class="card-head"><h3>Week reflection</h3><span class="reflect-saved" id="reflectSaved">Saved</span></div>
+              <div class="reflect-grid">
+                <div class="reflect-block">
+                  <label>📝 What I did</label>
+                  <textarea class="reflect-area" id="didArea" placeholder="Summarize the work you got through this week…"></textarea>
+                </div>
+                <div class="reflect-block">
+                  <label>💡 What I learned</label>
+                  <textarea class="reflect-area" id="learnedArea" placeholder="Key takeaways, new skills, lessons from mistakes…"></textarea>
+                </div>
+              </div>
             </div>
-            <div class="reflect-block">
-              <label>💡 What I learned</label>
-              <textarea class="reflect-area" id="learnedArea" placeholder="Key takeaways, new skills, lessons from mistakes…"></textarea>
+          </div>
+
+          <div class="quest-side">
+            <div class="card glass board-card">
+              <div class="card-head">
+                <h3>Weekly Tasks <span class="wk-sub" id="wkWeekLabel">W32</span></h3>
+                <span class="count" id="wkCount">0 / 0 done</span>
+              </div>
+              <div class="wk-add">
+                <input type="text" id="wkText" placeholder="Task title…" maxlength="140">
+                <div class="wk-add-row2">
+                  <select id="wkPriority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div class="wk-add-row2">
+                  <input type="date" id="wkDeadline">
+                  <input type="time" id="wkTime">
+                </div>
+                <div class="attach-row">
+                  <input type="url" id="wkLink" placeholder="Paste a link (Drive, Docs…)">
+                  <button class="attach-file-btn" id="wkFileBtn" type="button">📎 File</button>
+                  <input type="file" id="wkFileInput" style="display:none;" accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.png,.jpg,.jpeg">
+                </div>
+                <div id="wkFileChipWrap"></div>
+                <button id="wkAddBtn">+ Add task</button>
+              </div>
+              <select class="wk-filter" id="wkFilter"></select>
+              <div class="wk-list" id="wkTaskList"></div>
             </div>
           </div>
         </div>
@@ -392,6 +503,8 @@
       <div class="footer-note">
         <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced to your account</span></span>
         · <span class="reset-link" id="syncSetupLink" style="display:none;">set up cross-device sync</span>
+        · <span class="reset-link" id="pdfBtn">export PDF report</span>
+        · <span class="reset-link" id="publishBtn">get share link</span>
         · <span class="reset-link" id="exportBtn">export backup</span>
         · <span class="reset-link" id="importBtn">import backup</span>
         · <span class="reset-link" id="resetAll">reset all data</span>
@@ -406,6 +519,20 @@
     <h3 id="importResultTitle">Backup imported</h3>
     <p class="modal-p" id="importResultMsg"></p>
     <div class="modal-row"><button class="modal-btn primary" id="importResultClose">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="shareLinkModal">
+  <div class="modal glass">
+    <h3>View-only share link</h3>
+    <p class="modal-p">Anyone with this link can <b>view</b> your progress — they can't edit anything. It reads from an unlisted GitHub Gist (not indexed or searchable, but visible to anyone with the exact link), so treat it like a private document link. It updates automatically as you work, so your supervisor always sees your latest progress. Shows your <b>weekly task list</b> (with priority, deadline, status, and any attachments) plus reflections — your daily task boxes stay private and aren't included.</p>
+    <label class="modal-label">Share this link</label>
+    <input type="text" id="shareLinkInput" class="modal-input" readonly>
+    <div class="modal-row">
+      <button class="modal-btn primary" id="shareLinkCopyBtn">Copy link</button>
+      <button class="modal-btn" id="shareLinkCloseBtn">Close</button>
+    </div>
+    <div class="modal-msg" id="shareLinkMsg"></div>
   </div>
 </div>
 
@@ -453,6 +580,18 @@ const SKILL_TIERS = [
   {min:0, title:'Untouched'}, {min:1, title:'Novice'}, {min:3, title:'Apprentice'},
   {min:6, title:'Practitioner'}, {min:10, title:'Skilled'}, {min:15, title:'Expert'}
 ];
+const STATUS_OPTIONS = [
+  { v:'pending',        label:'⏳ Pending' },
+  { v:'started',        label:'🚀 Started' },
+  { v:'in_progress',    label:'🔄 In Progress' },
+  { v:'procrastinated', label:'🙈 Procrastinated' },
+  { v:'stuck',          label:'🧱 Stuck' },
+  { v:'review',         label:'👀 In Review' },
+  { v:'completed',      label:'✅ Completed' },
+  { v:'ghosted',        label:'👻 Ghosted' }
+];
+const STATUS_LABEL = Object.fromEntries(STATUS_OPTIONS.map(s => [s.v, s.label]));
+const MAX_ATTACHMENT_BYTES = 1.5 * 1024 * 1024; // ~1.5MB — keeps things well within Gist/localStorage limits
 
 let state = null;
 let currentWeekId = null;
@@ -473,7 +612,7 @@ function makeWeek(index){
   return {
     id:'w'+(START_WEEK_NUM+index), weekNum: START_WEEK_NUM+index,
     start: isoOf(startD), end: isoOf(addDays(isoOf(startD),6)),
-    days, cleared:false, reflection: { did:'', learned:'' }
+    days, cleared:false, reflection: { did:'', learned:'' }, weeklyTasks: []
   };
 }
 function defaultState(){
@@ -507,8 +646,6 @@ function setSyncStatus(mode){
 
 async function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-// Retries a storage call a few times before giving up, so a brief network
-// hiccup never gets treated the same as "no data has ever been saved".
 async function withRetry(fn, attempts = 4){
   let lastErr;
   for(let i=0;i<attempts;i++){
@@ -531,6 +668,46 @@ function getLocalCache(){
 }
 function setLocalCache(obj){
   try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(obj)); } catch(e){ console.warn('localStorage write failed', e); }
+}
+
+const REPORT_GIST_KEY = 'internship-quest-report-gist';
+const REPORT_GIST_FILENAME = 'internship-quest-report.json';
+
+async function gistPushGeneric(token, gistId, filename, obj, isPublic, description){
+  const body = { files: {} };
+  body.files[filename] = { content: JSON.stringify(obj, null, 2) };
+  let url = 'https://api.github.com/gists';
+  let method = 'POST';
+  if(gistId){ url += '/' + gistId; method = 'PATCH'; }
+  else { body.description = description || 'Internship Quest data'; body.public = !!isPublic; }
+  const res = await fetch(url, {
+    method,
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('Gist write failed (' + res.status + ')');
+  const data = await res.json();
+  return data.id;
+}
+
+function buildReportSnapshot(){
+  const xp = computeXP();
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+  return {
+    generatedAt: new Date().toISOString(),
+    xp, level, rank: rankForLevel(level), streak: computeStreak(),
+    weeks: state.weeks.map(w => ({
+      weekNum: w.weekNum, start: w.start, end: w.end, cleared: w.cleared,
+      // Daily task boxes are intentionally left out of the report — those stay private.
+      weeklyTasks: (w.weeklyTasks || []).map(t => ({ text: t.text, priority: t.priority, deadline: t.deadline, time: t.time, status: t.status, attachment: t.attachment || null })),
+      reflection: w.reflection
+    })),
+    skills: state.skills.map(s => ({
+      name: s.name,
+      tier: skillTierInfo(s.entries.length).title,
+      entries: [...s.entries].sort((a,b)=> b.date.localeCompare(a.date)).map(e => ({ date: e.date, note: e.note }))
+    }))
+  };
 }
 
 async function gistPull(token, gistId){
@@ -568,13 +745,9 @@ async function loadState(){
       const res = await withRetry(() => window.storage.get(STORAGE_KEY, false));
       if(res && res.value){ state = JSON.parse(res.value); loadedExisting = true; }
     } catch(e){
-      // Genuinely no data yet, or the read failed even after retries — either way,
-      // do not write a blank state over anything that might already exist.
       console.warn('No existing data found, or read failed after retries:', e);
     }
   } else {
-    // Deployed outside Claude: start from whatever is cached in this browser,
-    // then try to pull the authoritative copy from the linked GitHub Gist.
     const cached = getLocalCache();
     if(cached){ state = cached; loadedExisting = true; }
     const { token, gistId } = getSyncConfig();
@@ -597,14 +770,13 @@ async function loadState(){
 
   applyMigrations();
 
-  // Only write back automatically when we're touching real, previously-saved
-  // data (to persist the date fix) or a fresh brand-new tracker. A failed read
-  // is left untouched so a later successful load can't be clobbered.
   if(loadedExisting) await saveState();
 }
 
 function applyMigrations(){
+  if(!Array.isArray(state.skills)) state.skills = [];
   state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
+  state.weeks.forEach(w => { if(!Array.isArray(w.weeklyTasks)) w.weeklyTasks = []; });
   state.weeks.forEach(w => {
     const startD = addDays(START_ISO, (w.weekNum - START_WEEK_NUM) * 7);
     w.start = isoOf(startD);
@@ -626,8 +798,6 @@ async function saveState(){
     return;
   }
 
-  // Deployed outside Claude: always cache locally first (instant, never fails),
-  // then push to the linked GitHub Gist if cross-device sync is configured.
   setLocalCache(state);
   const { token, gistId } = getSyncConfig();
   if(!token){ setSyncStatus('local'); return; }
@@ -640,6 +810,24 @@ async function saveState(){
     console.error('Cloud sync push failed after retries', e);
     setSyncStatus('error');
   }
+  scheduleReportSync(token);
+}
+
+// Once a share link has been generated, keep it live: push a fresh report
+// snapshot a few seconds after each change (debounced so rapid edits — like
+// typing in a reflection box — don't fire a request per keystroke).
+let reportPushTimer;
+function scheduleReportSync(token){
+  const existingId = localStorage.getItem(REPORT_GIST_KEY) || '';
+  if(!existingId || !token) return;
+  clearTimeout(reportPushTimer);
+  reportPushTimer = setTimeout(async () => {
+    try{
+      await gistPushGeneric(token, existingId, REPORT_GIST_FILENAME, buildReportSnapshot(), false, 'Internship Quest — shared read-only report');
+    } catch(e){
+      console.warn('Live report sync failed (will retry on next change):', e);
+    }
+  }, 2500);
 }
 function currentWeek(){ return state.weeks.find(w => w.id === currentWeekId); }
 function allTasksOfWeek(w){ return w.days.flatMap(d => d.tasks); }
@@ -655,6 +843,7 @@ function computeXP(){
   let xp = 0;
   state.weeks.forEach(w => {
     xp += allTasksOfWeek(w).filter(t=>t.done).length * XP_PER_TASK;
+    xp += (w.weeklyTasks||[]).filter(t=>t.status==='completed').length * XP_PER_TASK;
     if(w.cleared) xp += WEEK_CLEAR_BONUS;
   });
   state.skills.forEach(s => { xp += s.entries.length * XP_PER_ENTRY; });
@@ -845,6 +1034,174 @@ function renderTasksView(){
   });
 }
 
+// ===== Weekly Tasks panel (right column) =====
+let wkFilterValue = 'all';
+let pendingAttachment = null; // { type:'file', name, dataUrl } staged before "Add task" is clicked
+
+function populateWkFilter(){
+  const sel = document.getElementById('wkFilter');
+  if(!sel || sel.dataset.populated) return;
+  sel.dataset.populated = '1';
+  sel.innerHTML = '<option value="all">All tasks</option>' +
+    STATUS_OPTIONS.map(s => `<option value="${s.v}">${s.label}</option>`).join('');
+}
+
+function isOverdue(t, today, nowTime){
+  if(!t.deadline || t.status === 'completed') return false;
+  if(t.deadline < today) return true;
+  if(t.deadline === today && t.time && t.time < nowTime) return true;
+  return false;
+}
+
+function attachmentChipHtml(t){
+  if(!t.attachment) return '';
+  if(t.attachment.type === 'link'){
+    return `<a class="attach-chip" href="${escapeHtml(t.attachment.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(shortenUrl(t.attachment.url))}</a>`;
+  }
+  if(t.attachment.type === 'file'){
+    return `<a class="attach-chip" href="${t.attachment.dataUrl}" download="${escapeHtml(t.attachment.name)}">📎 ${escapeHtml(t.attachment.name)}</a>`;
+  }
+  return '';
+}
+function shortenUrl(url){
+  try{ const u = new URL(url); return u.hostname.replace('www.',''); } catch(e){ return url.slice(0, 24); }
+}
+
+function renderWeeklyTasks(){
+  populateWkFilter();
+  const w = currentWeek();
+  const labelEl = document.getElementById('wkWeekLabel');
+  const listBox = document.getElementById('wkTaskList');
+  if(!w){ if(labelEl) labelEl.textContent=''; if(listBox) listBox.innerHTML=''; return; }
+  labelEl.textContent = 'W' + w.weekNum;
+
+  const all = w.weeklyTasks || [];
+  const doneCt = all.filter(t => t.status === 'completed').length;
+  const countEl = document.getElementById('wkCount');
+  if(countEl) countEl.textContent = `${doneCt} / ${all.length} done`;
+
+  const today = isoOf(new Date());
+  const now = new Date();
+  const nowTime = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+
+  let tasks = [...all];
+  if(wkFilterValue !== 'all') tasks = tasks.filter(t => t.status === wkFilterValue);
+  const order = {high:0, medium:1, low:2};
+  tasks.sort((a,b) => order[a.priority||'medium'] - order[b.priority||'medium']);
+
+  if(tasks.length === 0){
+    listBox.innerHTML = '<div class="wk-empty">No weekly tasks yet.</div>';
+    return;
+  }
+
+  listBox.innerHTML = '';
+  tasks.forEach(t => {
+    const overdue = isOverdue(t, today, nowTime);
+    const row = document.createElement('div');
+    row.className = 'wk-item bs-' + (t.status || 'pending') + (overdue ? ' overdue' : '');
+    const deadlineLabel = t.deadline ? fmtDate(new Date(t.deadline+'T00:00:00')) + (t.time ? ' · ' + t.time : '') : '';
+    row.innerHTML = `
+      <div class="wk-text">${escapeHtml(t.text)}</div>
+      <div class="wk-meta">
+        <span class="pri-tag pri-${t.priority||'medium'}">${t.priority||'medium'}</span>
+        ${t.deadline ? `<span class="wk-deadline-tag${overdue?' overdue':''}">${overdue?'overdue · ':''}${deadlineLabel}</span>` : ''}
+        ${attachmentChipHtml(t)}
+      </div>
+      <div class="wk-item-row2">
+        <select class="wk-status-select" data-id="${t.id}">
+          ${STATUS_OPTIONS.map(s => `<option value="${s.v}" ${t.status===s.v?'selected':''}>${s.label}</option>`).join('')}
+        </select>
+        <button class="wk-del" data-id="${t.id}">×</button>
+      </div>
+    `;
+    listBox.appendChild(row);
+  });
+}
+
+document.getElementById('wkFilter').addEventListener('change', (e) => {
+  wkFilterValue = e.target.value;
+  renderWeeklyTasks();
+});
+
+document.getElementById('wkFileBtn').addEventListener('click', () => {
+  document.getElementById('wkFileInput').click();
+});
+document.getElementById('wkFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  if(file.size > MAX_ATTACHMENT_BYTES){
+    alert('That file is too big (' + Math.round(file.size/1024) + 'KB). Please keep attachments under ~1.5MB — link it instead for larger files.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    pendingAttachment = { type:'file', name: file.name, dataUrl: reader.result };
+    renderWkFileChip();
+  };
+  reader.readAsDataURL(file);
+});
+function renderWkFileChip(){
+  const wrap = document.getElementById('wkFileChipWrap');
+  if(!pendingAttachment){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<span class="attach-chip">📎 ${escapeHtml(pendingAttachment.name)} <span class="x" id="wkFileChipX">✕</span></span>`;
+  document.getElementById('wkFileChipX').addEventListener('click', () => {
+    pendingAttachment = null;
+    renderWkFileChip();
+  });
+}
+
+document.getElementById('wkAddBtn').addEventListener('click', async () => {
+  const w = currentWeek();
+  if(!w) return;
+  const textInput = document.getElementById('wkText');
+  const text = textInput.value.trim();
+  if(!text) return;
+  const priority = document.getElementById('wkPriority').value;
+  const deadline = document.getElementById('wkDeadline').value;
+  const time = document.getElementById('wkTime').value;
+  const linkInput = document.getElementById('wkLink');
+  const linkVal = linkInput.value.trim();
+
+  let attachment = null;
+  if(linkVal){ attachment = { type:'link', url: linkVal }; }
+  else if(pendingAttachment){ attachment = pendingAttachment; }
+
+  w.weeklyTasks.push({ id: uid(), text, priority, deadline, time, status: 'pending', attachment });
+  textInput.value = '';
+  document.getElementById('wkDeadline').value = '';
+  document.getElementById('wkTime').value = '';
+  linkInput.value = '';
+  pendingAttachment = null;
+  renderWkFileChip();
+  await saveState();
+  renderWeeklyTasks();
+  renderTopbar();
+});
+document.getElementById('wkText').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('wkAddBtn').click(); });
+
+document.getElementById('wkTaskList').addEventListener('click', async (e) => {
+  const id = e.target.dataset.id;
+  if(!id || !e.target.classList.contains('wk-del')) return;
+  const w = currentWeek();
+  if(!w) return;
+  w.weeklyTasks = w.weeklyTasks.filter(t => t.id !== id);
+  await saveState();
+  renderWeeklyTasks();
+  renderTopbar();
+});
+document.getElementById('wkTaskList').addEventListener('change', async (e) => {
+  if(!e.target.classList.contains('wk-status-select')) return;
+  const id = e.target.dataset.id;
+  const w = currentWeek();
+  if(!w) return;
+  const t = w.weeklyTasks.find(t => t.id === id);
+  if(t) t.status = e.target.value;
+  await saveState();
+  renderWeeklyTasks();
+  renderTopbar();
+});
+
 function renderSkillsView(){
   const box = document.getElementById('skillListBox');
   box.innerHTML = '';
@@ -1007,6 +1364,7 @@ function renderAll(){
   renderTopbar();
   renderWeekList();
   renderTasksView();
+  renderWeeklyTasks();
   renderSkillsView();
   renderCalendar();
   renderDeadlineList();
@@ -1139,6 +1497,149 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   }
 });
 
+function pdfSectionBreak(doc, y, needed, margin, pageH){
+  if(y + needed > pageH - margin){ doc.addPage(); return margin; }
+  return y;
+}
+
+document.getElementById('pdfBtn').addEventListener('click', () => {
+  if(!window.jspdf){ alert('PDF library failed to load — check your connection and try again.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const margin = 44, pageW = 595.28, pageH = 841.89, lineH = 14;
+  let y = margin;
+
+  const xp = computeXP();
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+  doc.text('Internship Progress Report', margin, y); y += 22;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
+  doc.text('Generated ' + new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }), margin, y); y += 14;
+  doc.text(`Level ${level} · ${rankForLevel(level)} · ${computeStreak()} week streak`, margin, y); y += 24;
+  doc.setTextColor(20);
+
+  state.weeks.forEach(w => {
+    const weeklyAll = w.weeklyTasks || [];
+    if(weeklyAll.length === 0 && !w.reflection.did && !w.reflection.learned) return;
+
+    y = pdfSectionBreak(doc, y, 40, margin, pageH);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+    doc.text(`Week ${w.weekNum}  (${fmtDate(new Date(w.start+'T00:00:00'))} – ${fmtDate(new Date(w.end+'T00:00:00'))})${w.cleared ? '  ✓ cleared' : ''}`, margin, y);
+    y += 18;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+
+    if(weeklyAll.length === 0){
+      y = pdfSectionBreak(doc, y, lineH, margin, pageH);
+      doc.setTextColor(120); doc.text('No weekly tasks logged yet.', margin + 10, y); doc.setTextColor(20);
+      y += lineH;
+    } else {
+      const order = {high:0, medium:1, low:2};
+      [...weeklyAll].sort((a,b)=> order[a.priority||'medium']-order[b.priority||'medium']).forEach(t => {
+        const statusText = (STATUS_LABEL[t.status] || t.status || 'pending').replace(/^\S+\s/, ''); // drop emoji for PDF text
+        const deadlineTxt = t.deadline ? ' · due ' + fmtDate(new Date(t.deadline+'T00:00:00')) + (t.time ? ' ' + t.time : '') : '';
+        const attachTxt = t.attachment ? (t.attachment.type === 'link' ? ' · link: ' + t.attachment.url : ' · file: ' + t.attachment.name) : '';
+        const label = `[${statusText} · ${t.priority}]${deadlineTxt}${attachTxt}`;
+        const lines = doc.splitTextToSize(`- ${t.text}   (${label})`, pageW - margin*2 - 10);
+        y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+        doc.text(lines, margin + 10, y);
+        y += lines.length * lineH;
+      });
+    }
+
+    if(w.reflection.did){
+      y = pdfSectionBreak(doc, y, 28, margin, pageH);
+      doc.setFont('helvetica', 'bold'); doc.text('What I did:', margin + 10, y); y += lineH;
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(w.reflection.did, pageW - margin*2 - 10);
+      y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+      doc.text(lines, margin + 10, y); y += lines.length * lineH + 4;
+    }
+    if(w.reflection.learned){
+      y = pdfSectionBreak(doc, y, 28, margin, pageH);
+      doc.setFont('helvetica', 'bold'); doc.text('What I learned:', margin + 10, y); y += lineH;
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(w.reflection.learned, pageW - margin*2 - 10);
+      y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+      doc.text(lines, margin + 10, y); y += lines.length * lineH + 4;
+    }
+    y += 10;
+  });
+
+  if(state.skills.length){
+    y = pdfSectionBreak(doc, y, 30, margin, pageH);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+    doc.text('Skill Journal', margin, y); y += 20;
+
+    state.skills.forEach(s => {
+      const tier = skillTierInfo(s.entries.length).title;
+      y = pdfSectionBreak(doc, y, 18, margin, pageH);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
+      doc.text(`${s.name}  —  ${tier}`, margin, y); y += 15;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      const entriesSorted = [...s.entries].sort((a,b)=> b.date.localeCompare(a.date));
+      if(entriesSorted.length === 0){
+        y = pdfSectionBreak(doc, y, lineH, margin, pageH);
+        doc.setTextColor(120); doc.text('No entries logged yet.', margin + 10, y); doc.setTextColor(20);
+        y += lineH;
+      } else {
+        entriesSorted.forEach(en => {
+          const lines = doc.splitTextToSize(`${fmtDate(new Date(en.date+'T00:00:00'))} — ${en.note}`, pageW - margin*2 - 10);
+          y = pdfSectionBreak(doc, y, lines.length * lineH, margin, pageH);
+          doc.text(lines, margin + 10, y);
+          y += lines.length * lineH;
+        });
+      }
+      y += 8;
+    });
+  }
+
+  doc.save(`internship-progress-report-${isoOf(new Date())}.pdf`);
+});
+
+function openShareLinkModal(link){
+  document.getElementById('shareLinkInput').value = link;
+  document.getElementById('shareLinkMsg').textContent = '';
+  document.getElementById('shareLinkModal').classList.add('show');
+}
+document.getElementById('shareLinkCloseBtn').addEventListener('click', () => {
+  document.getElementById('shareLinkModal').classList.remove('show');
+});
+document.getElementById('shareLinkCopyBtn').addEventListener('click', async () => {
+  const input = document.getElementById('shareLinkInput');
+  input.select();
+  try{
+    await navigator.clipboard.writeText(input.value);
+    document.getElementById('shareLinkMsg').textContent = 'Copied!';
+  } catch(e){
+    document.getElementById('shareLinkMsg').textContent = 'Select the text above and copy it manually.';
+  }
+});
+
+document.getElementById('publishBtn').addEventListener('click', async () => {
+  const { token } = getSyncConfig();
+  if(!token){
+    alert('This uses the same GitHub token as cross-device sync. Connect that first, then try "get share link" again.');
+    openSyncModal();
+    return;
+  }
+  try{
+    setSyncStatus('syncing');
+    const existingId = localStorage.getItem(REPORT_GIST_KEY) || '';
+    const snapshot = buildReportSnapshot();
+    const newId = await gistPushGeneric(token, existingId, REPORT_GIST_FILENAME, snapshot, false, 'Internship Quest — shared read-only report');
+    if(!existingId) localStorage.setItem(REPORT_GIST_KEY, newId);
+    setSyncStatus('ok');
+    const base = location.href.split('?')[0].replace(/[^/]*$/, '');
+    const link = base + 'report.html?gist=' + newId;
+    openShareLinkModal(link);
+  } catch(e){
+    console.error('Publish failed', e);
+    setSyncStatus('error');
+    alert('Publishing the share link failed: ' + e.message);
+  }
+});
+
 function openSyncModal(){
   const { token, gistId } = getSyncConfig();
   document.getElementById('syncTokenInput').value = token;
@@ -1168,15 +1669,13 @@ document.getElementById('syncConnectBtn')?.addEventListener('click', async () =>
   msg.textContent = 'Connecting…'; msg.className = 'modal-msg';
   try{
     if(gistIdInput){
-      // Linking to an existing gist from another device — pull it in as the source of truth.
       const remote = await gistPull(token, gistIdInput);
       setSyncConfig(token, gistIdInput);
       state = remote;
-      state.weeks.forEach(w => { if(!w.reflection) w.reflection = { did:'', learned:'' }; });
+      applyMigrations();
       setLocalCache(state);
       msg.textContent = 'Connected — pulled your existing data in.'; msg.className = 'modal-msg ok';
     } else {
-      // First device — create a brand-new gist from what's on this device right now.
       const newId = await gistPush(token, '', state);
       setSyncConfig(token, newId);
       document.getElementById('syncGistInput').value = newId;
