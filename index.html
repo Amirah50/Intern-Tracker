@@ -225,16 +225,7 @@
   .mini-task .del:hover{ opacity:1; }
   .day-empty{ font-family:'JetBrains Mono'; font-size:10.5px; color: var(--ink-soft); padding: 6px 2px; }
 
-  /* ===== Two-column quest layout: daily grid + reflection on the left, task board on the right ===== */
-  .quest-columns{ display:flex; gap:16px; align-items:flex-start; }
-  .quest-main{ flex:1 1 0; min-width:0; order:2; }
-  .quest-side{ width: 320px; flex-shrink:0; position:sticky; top:16px; order:1; }
-  @media (max-width: 1100px){
-    .quest-columns{ flex-direction:column; }
-    .quest-side{ width:100%; position:static; }
-  }
-
-  .board-card{ padding: 18px 18px 16px; }
+  .board-card{ margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(150,110,160,0.18); }
   .attach-row{ display:flex; gap:6px; align-items:center; }
   .attach-row input[type=url]{ flex:1; }
   .attach-file-btn{
@@ -413,6 +404,36 @@
           <div id="deadlineList"></div>
         </div>
       </div>
+
+      <div class="board-card">
+        <div class="card-head">
+          <h3>Weekly Tasks <span class="wk-sub" id="wkWeekLabel">W32</span></h3>
+          <span class="count" id="wkCount">0 / 0 done</span>
+        </div>
+        <div class="wk-add">
+          <input type="text" id="wkText" placeholder="Task title…" maxlength="140">
+          <div class="wk-add-row2">
+            <select id="wkPriority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="wk-add-row2">
+            <input type="date" id="wkDeadline">
+            <input type="time" id="wkTime">
+          </div>
+          <div class="attach-row">
+            <input type="url" id="wkLink" placeholder="Paste a link (Drive, Docs…)">
+            <button class="attach-file-btn" id="wkFileBtn" type="button">📎 File</button>
+            <input type="file" id="wkFileInput" style="display:none;" accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.png,.jpg,.jpeg">
+          </div>
+          <div id="wkFileChipWrap"></div>
+          <button id="wkAddBtn">+ Add task</button>
+        </div>
+        <select class="wk-filter" id="wkFilter"></select>
+        <div class="wk-list" id="wkTaskList"></div>
+      </div>
     </aside>
 
     <div class="panel">
@@ -430,54 +451,18 @@
           </div>
         </div>
 
-        <div class="quest-columns">
-          <div class="quest-main">
-            <div class="day-grid" id="dayGrid"></div>
+        <div class="day-grid" id="dayGrid"></div>
 
-            <div class="card glass" style="margin-top:16px;">
-              <div class="card-head"><h3>Week reflection</h3><span class="reflect-saved" id="reflectSaved">Saved</span></div>
-              <div class="reflect-grid">
-                <div class="reflect-block">
-                  <label>📝 What I did</label>
-                  <textarea class="reflect-area" id="didArea" placeholder="Summarize the work you got through this week…"></textarea>
-                </div>
-                <div class="reflect-block">
-                  <label>💡 What I learned</label>
-                  <textarea class="reflect-area" id="learnedArea" placeholder="Key takeaways, new skills, lessons from mistakes…"></textarea>
-                </div>
-              </div>
+        <div class="card glass" style="margin-top:16px;">
+          <div class="card-head"><h3>Week reflection</h3><span class="reflect-saved" id="reflectSaved">Saved</span></div>
+          <div class="reflect-grid">
+            <div class="reflect-block">
+              <label>📝 What I did</label>
+              <textarea class="reflect-area" id="didArea" placeholder="Summarize the work you got through this week…"></textarea>
             </div>
-          </div>
-
-          <div class="quest-side">
-            <div class="card glass board-card">
-              <div class="card-head">
-                <h3>Weekly Tasks <span class="wk-sub" id="wkWeekLabel">W32</span></h3>
-                <span class="count" id="wkCount">0 / 0 done</span>
-              </div>
-              <div class="wk-add">
-                <input type="text" id="wkText" placeholder="Task title…" maxlength="140">
-                <div class="wk-add-row2">
-                  <select id="wkPriority">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-                <div class="wk-add-row2">
-                  <input type="date" id="wkDeadline">
-                  <input type="time" id="wkTime">
-                </div>
-                <div class="attach-row">
-                  <input type="url" id="wkLink" placeholder="Paste a link (Drive, Docs…)">
-                  <button class="attach-file-btn" id="wkFileBtn" type="button">📎 File</button>
-                  <input type="file" id="wkFileInput" style="display:none;" accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.png,.jpg,.jpeg">
-                </div>
-                <div id="wkFileChipWrap"></div>
-                <button id="wkAddBtn">+ Add task</button>
-              </div>
-              <select class="wk-filter" id="wkFilter"></select>
-              <div class="wk-list" id="wkTaskList"></div>
+            <div class="reflect-block">
+              <label>💡 What I learned</label>
+              <textarea class="reflect-area" id="learnedArea" placeholder="Key takeaways, new skills, lessons from mistakes…"></textarea>
             </div>
           </div>
         </div>
