@@ -102,11 +102,16 @@
 
 <script>
 const gistId = new URLSearchParams(location.search).get('gist');
-const POLL_MS = 25000;
+const BASE_POLL_MS = 90000; // 90s — GitHub allows only 60 unauthenticated requests/hour per IP,
+                             // so this stays well under that even with manual refreshes mixed in.
+const MAX_POLL_MS = 8 * 60000; // back off up to 8 min between retries on repeated failure
+const CACHE_KEY = 'internship-report-cache-' + (gistId || 'none');
 let report = null;
 let activeWeekIdx = 0;
 let filterValue = 'all';
 let pollTimer = null;
+let currentPollMs = BASE_POLL_MS;
+let consecutiveFailures = 0;
 
 const STATUS_LABEL = {
   pending: '⏳ Pending', started: '🚀 Started', in_progress: '🔄 In Progress',
@@ -122,17 +127,33 @@ function isoOf(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + p
 
 function setLive(text){ document.getElementById('liveLabel').textContent = text; }
 
+function readCache(){
+  try{ const raw = localStorage.getItem(CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch(e){ return null; }
+}
+function writeCache(obj){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify(obj)); } catch(e){ /* ignore quota errors */ }
+}
+
 async function load(isPoll){
   const app = document.getElementById('app');
   if(!gistId){ app.innerHTML = '<div class="empty">No report specified. Ask for a link that includes ?gist=…</div>'; setLive('Not connected'); return; }
-  if(!isPoll) setLive('Live — checking for updates…');
+  if(!isPoll && !report) setLive('Live — checking for updates…');
   try{
     const res = await fetch('https://api.github.com/gists/' + gistId + '?_=' + Date.now());
+    if(res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0'){
+      const resetHeader = res.headers.get('x-ratelimit-reset');
+      const resetAt = resetHeader ? new Date(parseInt(resetHeader,10) * 1000) : null;
+      throw Object.assign(new Error('GitHub rate limit reached'), { rateLimited: true, resetAt });
+    }
     if(!res.ok) throw new Error('Could not load report (' + res.status + ')');
     const data = await res.json();
     const file = Object.values(data.files || {}).find(f => f.filename === 'internship-quest-report.json') || Object.values(data.files || {})[0];
     if(!file || !file.content) throw new Error('Report file not found in that gist');
     report = JSON.parse(file.content);
+    writeCache({ report, fetchedAt: Date.now() });
+    consecutiveFailures = 0;
+    currentPollMs = BASE_POLL_MS;
+
     if(!isPoll){
       const today = isoOf(new Date());
       const match = report.weeks.findIndex(w => today >= w.start && today <= w.end);
@@ -143,11 +164,34 @@ async function load(isPoll){
     setLive('Live — updated ' + pad2(t.getHours()) + ':' + pad2(t.getMinutes()));
   } catch(e){
     console.error(e);
-    if(!isPoll) app.innerHTML = '<div class="empty">This report could not be loaded. It may have been unpublished, or the link is incorrect.</div>';
-    setLive('Could not refresh — will retry');
+    consecutiveFailures++;
+    currentPollMs = Math.min(MAX_POLL_MS, BASE_POLL_MS * Math.pow(2, consecutiveFailures - 1));
+
+    if(!report){
+      // Nothing on screen yet this session — try the local cache before giving up.
+      const cached = readCache();
+      if(cached){
+        report = cached.report;
+        const today = isoOf(new Date());
+        const match = report.weeks.findIndex(w => today >= w.start && today <= w.end);
+        activeWeekIdx = match >= 0 ? match : Math.max(0, report.weeks.length - 1);
+        render();
+        const cachedAt = new Date(cached.fetchedAt);
+        setLive('Showing last known data from ' + pad2(cachedAt.getHours()) + ':' + pad2(cachedAt.getMinutes()) + ' — reconnecting…');
+      } else if(e.rateLimited){
+        app.innerHTML = '<div class="empty">GitHub has briefly rate-limited this link (too many checks in the last hour). It will start working again automatically shortly — no action needed.</div>';
+        setLive('Rate limited — retrying automatically');
+      } else {
+        app.innerHTML = '<div class="empty">This report could not be loaded. It may have been unpublished, or the link is incorrect.</div>';
+        setLive('Could not refresh — will retry');
+      }
+    } else {
+      // We already have something on screen — keep showing it, just note the hiccup quietly.
+      setLive(e.rateLimited ? 'Rate limited — will retry shortly' : 'Could not refresh — will retry');
+    }
   }
   clearTimeout(pollTimer);
-  pollTimer = setTimeout(() => load(true), POLL_MS);
+  pollTimer = setTimeout(() => load(true), currentPollMs);
 }
 
 function attachmentChipHtml(t){
@@ -253,7 +297,11 @@ function render(){
   }
 }
 
-document.getElementById('refreshBtn').addEventListener('click', () => load(false));
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  consecutiveFailures = 0;
+  currentPollMs = BASE_POLL_MS;
+  load(false);
+});
 document.addEventListener('visibilitychange', () => { if(!document.hidden) load(true); });
 
 load(false);
